@@ -6,6 +6,7 @@
  * run in a plain browser/jsdom environment without the desktop shell present.
  */
 import type { CommandError, IpcResult, PrivacySettings } from './types';
+import { DEFAULT_PRIVACY_SETTINGS } from './types';
 
 type InvokeFn = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
 
@@ -112,9 +113,48 @@ export async function onDocumentChanged(
 export const exportDocx = (docxBytes: number[], suggestedName: string) =>
   invokeCommand<{ outputPath: string }>('export_docx', { docxBytes, suggestedName });
 
-export const settingsGet = () => invokeCommand<PrivacySettings>('settings_get');
-export const settingsSet = (patch: Partial<PrivacySettings>) =>
-  invokeCommand<PrivacySettings>('settings_set', { patch });
+/**
+ * Settings persistence. Under the desktop runtime this round-trips through the
+ * Rust core; in the web build (no Tauri) it falls back to `localStorage` so the
+ * privacy profile — including cloud-export consent — still persists on-device
+ * (Principle III: nothing leaves the device). Without this fallback the web
+ * build could never record consent, leaving cloud export permanently blocked.
+ */
+const WEB_SETTINGS_KEY = 'markdit.settings';
+
+function readWebSettings(): PrivacySettings {
+  try {
+    const raw = globalThis.localStorage?.getItem(WEB_SETTINGS_KEY);
+    if (raw) {
+      return { ...DEFAULT_PRIVACY_SETTINGS, ...(JSON.parse(raw) as Partial<PrivacySettings>) };
+    }
+  } catch {
+    // Malformed or unavailable storage — fall back to defaults.
+  }
+  return { ...DEFAULT_PRIVACY_SETTINGS };
+}
+
+function writeWebSettings(settings: PrivacySettings): void {
+  try {
+    globalThis.localStorage?.setItem(WEB_SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // Storage may be unavailable (e.g. private mode); settings stay in-memory.
+  }
+}
+
+export const settingsGet = (): Promise<IpcResult<PrivacySettings>> => {
+  if (!isTauriAvailable()) return Promise.resolve({ ok: true, value: readWebSettings() });
+  return invokeCommand<PrivacySettings>('settings_get');
+};
+
+export const settingsSet = (patch: Partial<PrivacySettings>): Promise<IpcResult<PrivacySettings>> => {
+  if (!isTauriAvailable()) {
+    const next: PrivacySettings = { ...readWebSettings(), ...patch };
+    writeWebSettings(next);
+    return Promise.resolve({ ok: true, value: next });
+  }
+  return invokeCommand<PrivacySettings>('settings_set', { patch });
+};
 
 export const updaterCheck = () =>
   invokeCommand<{ available: boolean; version?: string }>('updater_check');
