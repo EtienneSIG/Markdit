@@ -39,6 +39,8 @@ const STRINGS: Record<Locale, Dict> = {
     'export.dropped': 'Some elements are not supported and will be omitted:',
     'export.success': 'Export complete.',
     'export.failed': 'Export failed.',
+    'export.notConfigured':
+      'Microsoft sign-in is not configured. Set VITE_MSAL_CLIENT_ID to your Azure AD application id to export to OneNote or Loop.',
     'sidebar.title': 'File navigation',
     'sidebar.files': 'Files',
     'sidebar.openFolder': 'Open folder',
@@ -82,6 +84,8 @@ const STRINGS: Record<Locale, Dict> = {
     'export.dropped': 'Certains éléments ne sont pas pris en charge et seront omis :',
     'export.success': 'Export terminé.',
     'export.failed': "Échec de l'export.",
+    'export.notConfigured':
+      'La connexion Microsoft n’est pas configurée. Définissez VITE_MSAL_CLIENT_ID avec l’ID d’application Azure AD pour exporter vers OneNote ou Loop.',
     'sidebar.title': 'Navigation des fichiers',
     'sidebar.files': 'Fichiers',
     'sidebar.openFolder': 'Ouvrir un dossier',

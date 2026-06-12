@@ -14,7 +14,7 @@ import {
 import type { AccountInfo } from '../../lib/types';
 import { logger } from '../../lib/logging';
 
-const CLIENT_ID = import.meta.env?.VITE_MSAL_CLIENT_ID ?? '';
+const CLIENT_ID = (import.meta.env?.VITE_MSAL_CLIENT_ID ?? '').trim();
 const AUTHORITY = 'https://login.microsoftonline.com/common';
 
 const config: Configuration = {
@@ -22,9 +22,25 @@ const config: Configuration = {
   cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false },
 };
 
+/**
+ * Whether Microsoft sign-in is configured. Cloud export (OneNote/Loop) requires
+ * an Azure AD (Entra ID) application id supplied at build time via
+ * `VITE_MSAL_CLIENT_ID`. Without it MSAL would send an empty `client_id` and the
+ * Microsoft login page returns AADSTS900144; callers must check this first and
+ * surface a clear message instead.
+ */
+export function isGraphConfigured(): boolean {
+  return CLIENT_ID.length > 0;
+}
+
 let pca: PublicClientApplication | null = null;
 
 async function getClient(): Promise<PublicClientApplication> {
+  if (!isGraphConfigured()) {
+    throw new Error(
+      'Microsoft sign-in is not configured: set VITE_MSAL_CLIENT_ID to your Azure AD application id.',
+    );
+  }
   if (!pca) {
     pca = new PublicClientApplication(config);
     await pca.initialize();

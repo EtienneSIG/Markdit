@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ExportResult, ExportTargetId, PrivacySettings } from '../../lib/types';
 import { EXPORT_TARGETS, exportWord, exportCloud, canExportToCloud } from '../../export/exporter';
+import { isGraphConfigured } from '../../export/graph/auth';
 import { grantConsent } from '../../privacy/consent';
 import { t } from '../../lib/i18n';
 
@@ -56,6 +57,19 @@ export function ExportDialog({
   };
 
   const handleExport = async () => {
+    // Cloud targets need a configured Azure AD app; fail fast with a clear,
+    // localized message rather than opening a broken Microsoft sign-in popup
+    // (AADSTS900144 from an empty client_id).
+    if (isCloud && !isGraphConfigured()) {
+      setResult({
+        target: cloudTarget,
+        status: 'failed',
+        outputLocation: null,
+        droppedElements: [],
+        message: t('export.notConfigured'),
+      });
+      return;
+    }
     setBusy(true);
     setResult(null);
     try {
