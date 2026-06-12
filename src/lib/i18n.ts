@@ -18,6 +18,7 @@ const STRINGS: Record<Locale, Dict> = {
     'view.read': 'Read',
     'view.edit': 'Edit',
     'view.source': 'Source',
+    'editor.label': 'Markdown editor',
     'notice.remoteBlocked':
       'Remote content is blocked. Enable it in Settings to load remote images.',
     'notice.enableRemote': 'Enable remote content',
@@ -39,6 +40,11 @@ const STRINGS: Record<Locale, Dict> = {
     'sidebar.openFolder': 'Open folder',
     'sidebar.empty': 'Open a folder to browse your Markdown files.',
     'sidebar.unsupported': 'Folder browsing is not supported in this environment. Use Open instead.',
+    'conflict.title': 'File changed on disk',
+    'conflict.body':
+      'This file was modified outside Markdit. Reload the version on disk (your unsaved changes will be lost) or keep editing your version.',
+    'conflict.reload': 'Reload from disk',
+    'conflict.keep': 'Keep my version',
   },
   fr: {
     'app.title': 'Markdit',
@@ -50,6 +56,7 @@ const STRINGS: Record<Locale, Dict> = {
     'view.read': 'Lecture',
     'view.edit': 'Édition',
     'view.source': 'Source',
+    'editor.label': 'Éditeur Markdown',
     'notice.remoteBlocked':
       'Le contenu distant est bloqué. Activez-le dans les Réglages pour charger les images distantes.',
     'notice.enableRemote': 'Activer le contenu distant',
@@ -73,6 +80,11 @@ const STRINGS: Record<Locale, Dict> = {
     'sidebar.empty': 'Ouvrez un dossier pour parcourir vos fichiers Markdown.',
     'sidebar.unsupported':
       "La navigation par dossier n'est pas prise en charge dans cet environnement. Utilisez Ouvrir.",
+    'conflict.title': 'Fichier modifié sur le disque',
+    'conflict.body':
+      "Ce fichier a été modifié en dehors de Markdit. Rechargez la version du disque (vos modifications non enregistrées seront perdues) ou continuez avec votre version.",
+    'conflict.reload': 'Recharger depuis le disque',
+    'conflict.keep': 'Conserver ma version',
   },
 };
 

@@ -9,6 +9,7 @@ import {
   type ProseMirrorDoc,
 } from '../../markdown/tiptap-bridge';
 import { Toolbar } from '../toolbar/Toolbar';
+import { t } from '../../lib/i18n';
 
 export interface EditorProps {
   markdown: string;
@@ -34,7 +35,12 @@ export function Editor({ markdown, onChange }: EditorProps): JSX.Element {
       onChange(md);
     },
     editorProps: {
-      attributes: { class: 'markdit-editor', role: 'textbox', 'aria-multiline': 'true' },
+      attributes: {
+        class: 'markdit-editor',
+        role: 'textbox',
+        'aria-multiline': 'true',
+        'aria-label': t('editor.label'),
+      },
     },
   });
 

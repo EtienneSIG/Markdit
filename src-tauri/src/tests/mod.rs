@@ -3,6 +3,7 @@
 
 mod document_open;
 mod document_save_conflict;
+mod updater_signature;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};

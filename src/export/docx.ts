@@ -122,6 +122,12 @@ export async function exportToDocx(tree: Root): Promise<DocxResult> {
   const children = tree.children.flatMap((n) => blockToParagraphs(n, dropped));
   const section: ISectionOptions = { properties: {}, children };
   const doc = new Document({ sections: [section] });
-  const bytes = await Packer.toBuffer(doc);
-  return { bytes: new Uint8Array(bytes), droppedElements: [...dropped] };
+  // `Packer.toBuffer` relies on Node's `Buffer`, which is absent in the browser
+  // and the Tauri WebView; `Packer.toBlob` is the browser-safe path. Select the
+  // available one so the export stays fully client-side and offline (FR-009).
+  const bytes =
+    typeof Buffer !== 'undefined'
+      ? new Uint8Array(await Packer.toBuffer(doc))
+      : new Uint8Array(await (await Packer.toBlob(doc)).arrayBuffer());
+  return { bytes, droppedElements: [...dropped] };
 }

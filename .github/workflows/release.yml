@@ -1,0 +1,102 @@
+name: Release
+
+# T049 — Signed installer/update production. T053 — Windows 10/11 x64 + ARM64
+# build targets. Signing secrets are injected from the repository/organization
+# secret store and are never committed to source (Principle V — supply chain).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    name: Build, sign & bundle (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows 10 & 11 share the same binary targets; both are validated
+          # on the install-lifecycle job (T047). x64 covers Win10/Win11 desktop;
+          # ARM64 covers Windows on ARM (Surface Pro X, etc.).
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: ${{ matrix.target }}
+
+      - run: npm ci
+
+      # Authenticode code signing of the installers. The certificate lives in a
+      # secret (base64 PFX) and is imported transiently; nothing is persisted.
+      # For an HSM / Azure Trusted Signing backend, replace this step with the
+      # provider's signing action and point tauri at it via `signCommand`.
+      - name: Import code-signing certificate
+        if: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
+        shell: pwsh
+        run: |
+          $pfx = [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          $path = Join-Path $env:RUNNER_TEMP 'markdit-signing.pfx'
+          [System.IO.File]::WriteAllBytes($path, $pfx)
+          "WINDOWS_CERTIFICATE_PATH=$path" | Out-File -FilePath $env:GITHUB_ENV -Append
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+
+      - name: Build & bundle signed installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          # Updater package signing (minisign) — verified fail-closed at install.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Authenticode signing of the .msi/.exe installers.
+          TAURI_WINDOWS_SIGN_COMMAND: ${{ env.WINDOWS_CERTIFICATE_PATH != '' && format('signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f "{0}" /p "{1}" "%1"', env.WINDOWS_CERTIFICATE_PATH, secrets.WINDOWS_CERTIFICATE_PASSWORD) || '' }}
+        with:
+          args: --target ${{ matrix.target }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Markdit ${{ github.ref_name }}'
+          releaseDraft: true
+
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdit-${{ matrix.arch }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+
+  verify-signature:
+    name: Verify installer signature (T045)
+    needs: bundle
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: markdit-x64
+          path: dist-installers
+      - name: Run signature verification spec
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem -Path dist-installers -Filter *.msi -Recurse | Select-Object -First 1
+          $env:MARKDIT_INSTALLER = $msi.FullName
+          npx playwright test tests/e2e/installer-signature.spec.ts

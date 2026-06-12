@@ -64,3 +64,65 @@ pub fn document_save(
     std::fs::write(&path, &markdown).map_err(|e| CommandError::io_error(e.to_string()))?;
     Ok(SaveResult { content_hash: hash(&markdown) })
 }
+
+/// Registry of active file watchers, keyed by absolute path. Keeping the watcher
+/// handle alive keeps the watch running; removing it stops the watch.
+#[derive(Default)]
+pub struct WatchRegistry(pub std::sync::Mutex<std::collections::HashMap<String, notify::RecommendedWatcher>>);
+
+/// Payload emitted to the frontend when a watched file changes on disk.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DocumentChanged {
+    path: String,
+    disk_hash: String,
+}
+
+/// Begin watching a file for external modifications (FR-007). Emits a
+/// `document://changed` event carrying the new on-disk hash so the frontend can
+/// prompt the user to resolve the conflict without clobbering their edits.
+#[tauri::command]
+pub fn document_watch(
+    app: tauri::AppHandle,
+    registry: tauri::State<'_, WatchRegistry>,
+    path: String,
+) -> CommandResult<()> {
+    use tauri::Emitter;
+
+    let watch_path = path.clone();
+    let watcher = crate::fs_watch::spawn_watcher(&path, move |event| {
+        if matches!(
+            event.kind,
+            notify::EventKind::Modify(_) | notify::EventKind::Create(_)
+        ) {
+            if let Ok(content) = std::fs::read_to_string(&watch_path) {
+                let _ = app.emit(
+                    "document://changed",
+                    DocumentChanged { path: watch_path.clone(), disk_hash: hash(&content) },
+                );
+            }
+        }
+    })
+    .map_err(|e| CommandError::io_error(e.to_string()))?;
+
+    registry
+        .0
+        .lock()
+        .map_err(|e| CommandError::io_error(e.to_string()))?
+        .insert(path, watcher);
+    Ok(())
+}
+
+/// Stop watching a previously-watched file.
+#[tauri::command]
+pub fn document_unwatch(
+    registry: tauri::State<'_, WatchRegistry>,
+    path: String,
+) -> CommandResult<()> {
+    registry
+        .0
+        .lock()
+        .map_err(|e| CommandError::io_error(e.to_string()))?
+        .remove(&path);
+    Ok(())
+}

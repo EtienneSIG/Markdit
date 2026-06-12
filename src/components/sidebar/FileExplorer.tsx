@@ -173,15 +173,17 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
 
       {rootName && <div className="markdit-sidebar-root">{rootName}</div>}
 
-      <div className="markdit-sidebar-body" role="tree" aria-label={t('sidebar.files')}>
-        {tree.length > 0 ? (
+      {tree.length > 0 ? (
+        <div className="markdit-sidebar-body" role="tree" aria-label={t('sidebar.files')}>
           <Tree nodes={tree} activePath={activePath} depth={0} onSelect={handleSelect} />
-        ) : (
+        </div>
+      ) : (
+        <div className="markdit-sidebar-body">
           <p className="markdit-sidebar-empty">
             {canPickDirectory ? t('sidebar.empty') : t('sidebar.unsupported')}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {error && (
         <p className="markdit-sidebar-error" role="alert">

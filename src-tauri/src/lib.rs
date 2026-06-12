@@ -16,9 +16,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(document::WatchRegistry::default())
         .invoke_handler(tauri::generate_handler![
             document::document_open,
             document::document_save,
+            document::document_watch,
+            document::document_unwatch,
             export::export_docx,
             settings::settings_get,
             settings::settings_set,

@@ -3,10 +3,14 @@ import { Reader } from '../components/reader/Reader';
 import { RenderNotice } from '../components/reader/RenderNotice';
 import { Editor } from '../components/editor/Editor';
 import { ExportDialog } from '../components/dialogs/ExportDialog';
+import { ConflictDialog } from '../components/dialogs/ConflictDialog';
 import { FileExplorer, type SelectedFile } from '../components/sidebar/FileExplorer';
 import {
   documentOpen,
   documentSaveAs,
+  documentWatch,
+  documentUnwatch,
+  onDocumentChanged,
   isTauriAvailable,
   settingsGet,
   settingsSet,
@@ -26,6 +30,7 @@ export function App(): JSX.Element {
   const [view, setView] = useState<ViewMode>('read');
   const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
   const [exportOpen, setExportOpen] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -42,6 +47,30 @@ export function App(): JSX.Element {
   const blockedCount = settings.allowRemoteContent
     ? 0
     : (markdown.match(/!\[[^\]]*\]\(https?:\/\//g) ?? []).length;
+
+  // Watch the open file for external changes and prompt before clobbering edits
+  // (FR-007). Only active under the desktop runtime; a no-op in the web build.
+  useEffect(() => {
+    if (!filePath || !isTauriAvailable()) return;
+    let unlisten: (() => void) | undefined;
+    void documentWatch(filePath);
+    void onDocumentChanged((e) => {
+      if (e.path === filePath) setConflictOpen(true);
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      unlisten?.();
+      void documentUnwatch(filePath);
+    };
+  }, [filePath]);
+
+  const handleReloadFromDisk = useCallback(async () => {
+    setConflictOpen(false);
+    if (!filePath) return;
+    const res = await documentOpen(filePath);
+    if (res.ok) setMarkdown(res.value.markdown);
+  }, [filePath]);
 
   const handleOpen = useCallback(async () => {
     const res = await documentOpen();
@@ -121,6 +150,13 @@ export function App(): JSX.Element {
         settings={settings}
         onSettingsChange={setSettings}
         onClose={() => setExportOpen(false)}
+      />
+
+      <ConflictDialog
+        open={conflictOpen}
+        fileName={filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md'}
+        onReload={handleReloadFromDisk}
+        onKeep={() => setConflictOpen(false)}
       />
     </div>
   );

@@ -3,6 +3,9 @@
 
 use serde::Serialize;
 
+/// Canonical error codes. The wire shape is `{ code, message }` produced by
+/// [`CommandError`]; this enum documents the closed set of codes.
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "code", content = "message")]
 pub enum ErrorCode {
@@ -37,6 +40,7 @@ impl CommandError {
     pub fn invalid_argument(msg: impl Into<String>) -> Self {
         Self { code: "INVALID_ARGUMENT".into(), message: msg.into() }
     }
+    #[allow(dead_code)] // Part of the closed error API; used by forthcoming command paths.
     pub fn cancelled(msg: impl Into<String>) -> Self {
         Self { code: "CANCELLED".into(), message: msg.into() }
     }
