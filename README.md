@@ -1,16 +1,38 @@
 # Markdit
 
 Markdit is a Windows-first **WYSIWYG Markdown editor** that lets you read, edit,
-and export Markdown documents without writing Markdown syntax by hand.
+and export Markdown documents without writing Markdown syntax by hand. The look
+and feel takes cues from Microsoft Loop, with a Word-like formatting ribbon.
 
-## Planned capabilities
+## Screenshots
+
+**Read mode** — open `.md` files and read them rendered with GitHub-Flavored
+Markdown fidelity, in a clean document card with a collapsible file sidebar.
+
+![Markdit in Read mode](docs/screenshots/read-view.png)
+
+**Edit mode** — a Word-like formatting ribbon (Font, Paragraph, Insert) drives a
+WYSIWYG editor while the underlying file stays portable, clean Markdown.
+
+![Markdit in Edit mode with the formatting ribbon](docs/screenshots/edit-view.png)
+
+**Export** — export to Microsoft Word (`.docx`) offline, or to OneNote/Loop with
+explicit consent. Unsupported elements are listed up front before anything is
+written or leaves the device.
+
+![Markdit export dialog](docs/screenshots/export-dialog.png)
+
+## Capabilities
 
 1. **Read Markdown like on Git** — open `.md` files and see them rendered with
    GitHub-Flavored Markdown fidelity (tables, task lists, fenced code, etc.).
-2. **Visual editing without Markdown** — formatting toolbar, fonts, and styles;
+2. **Visual editing without Markdown** — Word-like formatting ribbon and styles;
    the underlying file stays clean, portable Markdown.
-3. **Installable on Windows** — signed installer with clean updates/uninstall.
-4. **Export** — to Microsoft Word (`.docx`), OneNote, and Loop.
+3. **Collapsible navigation** — a burger toggle shows/hides the file sidebar so
+   the document can use the full width.
+4. **Installable on Windows** — signed installer with clean updates/uninstall.
+5. **Export** — to Microsoft Word (`.docx`, fully offline) and, with explicit
+   consent, OneNote and Loop via Microsoft Graph.
 
 ## Regulatory compliance
 
@@ -86,7 +108,35 @@ To refresh the golden round-trip corpus after an intentional engine change:
 node scripts/generate-corpus.mjs
 ```
 
-## Privacy & accessibility
+### Build a Windows executable
+
+The desktop build requires the Rust toolchain and the Tauri prerequisites
+(Microsoft C++ Build Tools and the WebView2 runtime, which ships with Windows
+11). To produce the app and its Windows installers:
+
+```powershell
+npm run tauri build
+```
+
+The build outputs land under `src-tauri/target/release/`:
+
+- `markdit.exe` — the standalone application executable.
+- `bundle/msi/Markdit_<version>_x64_en-US.msi` — Windows Installer package.
+- `bundle/nsis/Markdit_<version>_x64-setup.exe` — NSIS setup (per-user install).
+
+> Installer code-signing is optional for local builds; see
+> [SECURITY.md](SECURITY.md) for the production signing and update model.
+
+### Cloud export setup (OneNote / Loop)
+
+Exporting to Word works fully offline with no configuration. Exporting to
+**OneNote or Loop** uses Microsoft Graph and therefore requires a free Microsoft
+Entra ID (Azure AD) application registration: copy your application (client) id
+into a local `.env.local` file as `VITE_MSAL_CLIENT_ID`. Step-by-step
+instructions are in [.env.example](.env.example). Without it, Markdit shows a
+clear message instead of attempting sign-in.
+
+
 
 Markdit is **local-first**. On first run telemetry is off, remote content is
 blocked, and no cloud consents exist. Nothing leaves the device without an
