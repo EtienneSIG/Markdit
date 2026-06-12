@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-12
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "Éditeur de Markdown : (1) lire les fichiers
 markdown comme sur Git, (2) édition visuelle sans écrire de markdown (barre de
@@ -12,6 +12,18 @@ style, police…), (3) installable sur Windows, (4) export vers différents form
 (Word, OneNote, Loop…). Conformité aux réglementations européennes et
 nord-américaines, vérifiée a posteriori par des agents dédiés qui créent des
 backlogs."
+
+## Clarifications
+
+### Session 2026-06-12
+
+- Q: Minimum supported Windows versions? → A: Windows 10 (x64, 22H2+) and
+  Windows 11 (x64 and ARM64).
+- Q: Markdown baseline? → A: CommonMark + GitHub Flavored Markdown.
+- Q: Primary offline export target vs. cloud targets? → A: Word `.docx` works
+  fully offline; OneNote and Loop require Microsoft 365 sign-in and consent.
+- Q: Default data handling? → A: Local-first; no document content leaves the
+  device without explicit per-action consent; telemetry is opt-in.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -136,6 +148,10 @@ application; delivers interoperability value.
 - What happens on save conflicts (file changed on disk externally)? → The user is
   prompted; no overwrite without confirmation.
 - How are non-Latin scripts, RTL text, and emoji handled in editing and export?
+  → The editor MUST handle Unicode (UTF-8) content, including CJK and other
+  non-Latin scripts, right-to-left text, and emoji, in both editing and export.
+  Markdown is stored as UTF-8 and round-trips losslessly; RTL paragraphs honor
+  Unicode bidirectional rendering.
 
 ## Requirements *(mandatory)*
 
@@ -148,15 +164,17 @@ application; delivers interoperability value.
   blockquotes, links, images, and horizontal rules.
 - **FR-003**: System MUST sanitize untrusted/embedded HTML and MUST NOT fetch
   remote content without explicit user consent.
-- **FR-004**: Users MUST be able to apply formatting (bold, italic, headings,
-  lists, links, tables, fonts, text styles) via a visual toolbar and keyboard
-  shortcuts without typing Markdown syntax.
+- **FR-004**: Users MUST be able to apply formatting via a visual toolbar and
+  keyboard shortcuts without typing Markdown syntax. Portable actions (bold,
+  italic, headings, lists, links, tables, code, blockquotes) MUST map to standard
+  Markdown. Non-portable styling (custom fonts, font size, text/highlight color)
+  is OPTIONAL, MUST be clearly marked as non-portable and reversible, and MUST
+  NOT corrupt the underlying Markdown when omitted on save.
 - **FR-005**: System MUST persist documents as plain, standard Markdown text and
   MUST guarantee lossless round-tripping of edited documents.
 - **FR-006**: System MUST provide a toggleable raw Markdown source view.
 - **FR-007**: System MUST provide a signed Windows installer and a clean
-  uninstall path. [NEEDS CLARIFICATION: minimum supported Windows versions —
-  Windows 10 and 11 assumed.]
+  uninstall path, supporting Windows 10 (x64, 22H2+) and Windows 11 (x64/ARM64).
 - **FR-008**: System MUST support application updates over an authenticated,
   integrity-verified channel.
 - **FR-009**: System MUST export the active document to Microsoft Word (`.docx`).
@@ -195,8 +213,8 @@ application; delivers interoperability value.
 
 - **SC-001**: 100% of standard GFM elements in a reference test corpus render
   correctly compared to a Git-platform reference rendering.
-- **SC-002**: Files up to 1 MB open and render in under 1 second on a typical
-  supported Windows machine.
+- **SC-002**: Files up to 1 MB open and render in under 1 second on the
+  reference baseline machine (quad-core x64 CPU, 8 GB RAM, SSD, Windows 11 22H2).
 - **SC-003**: 100% of documents edited only through the visual toolbar save as
   valid standard Markdown and round-trip without meaningful content change.
 - **SC-004**: A user can format a paragraph (bold, heading, list, link) using
