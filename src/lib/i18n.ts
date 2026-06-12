@@ -42,6 +42,7 @@ const STRINGS: Record<Locale, Dict> = {
     'export.notConfigured':
       'Microsoft sign-in is not configured. Set VITE_MSAL_CLIENT_ID to your Azure AD application id to export to OneNote or Loop.',
     'sidebar.title': 'File navigation',
+    'sidebar.toggle': 'Toggle file navigation',
     'sidebar.files': 'Files',
     'sidebar.openFolder': 'Open folder',
     'sidebar.empty': 'Open a folder to browse your Markdown files.',
@@ -87,6 +88,7 @@ const STRINGS: Record<Locale, Dict> = {
     'export.notConfigured':
       'La connexion Microsoft n’est pas configurée. Définissez VITE_MSAL_CLIENT_ID avec l’ID d’application Azure AD pour exporter vers OneNote ou Loop.',
     'sidebar.title': 'Navigation des fichiers',
+    'sidebar.toggle': 'Afficher/masquer la navigation',
     'sidebar.files': 'Fichiers',
     'sidebar.openFolder': 'Ouvrir un dossier',
     'sidebar.empty': 'Ouvrez un dossier pour parcourir vos fichiers Markdown.',

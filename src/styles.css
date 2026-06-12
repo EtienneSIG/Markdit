@@ -99,6 +99,37 @@ body {
   min-width: 0;
 }
 
+.markdit-burger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.markdit-burger:hover {
+  background: var(--surface-hover);
+}
+
+.markdit-burger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.markdit-burger[aria-pressed='false'] {
+  color: var(--muted);
+}
+
 .markdit-topbar-center {
   margin: 0 auto;
 }

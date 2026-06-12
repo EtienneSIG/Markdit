@@ -31,6 +31,7 @@ export function App(): JSX.Element {
   const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
   const [exportOpen, setExportOpen] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -103,6 +104,30 @@ export function App(): JSX.Element {
     <div className="markdit-app">
       <header className="markdit-topbar">
         <div className="markdit-topbar-left">
+          <button
+            type="button"
+            className="markdit-burger"
+            onClick={() => setSidebarCollapsed((c) => !c)}
+            aria-label={t('sidebar.toggle')}
+            aria-pressed={!sidebarCollapsed}
+            title={t('sidebar.toggle')}
+          >
+            <svg
+              className="markdit-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M4 6h16" />
+              <path d="M4 12h16" />
+              <path d="M4 18h16" />
+            </svg>
+          </button>
           <span className="markdit-brand">
             <span className="markdit-brand-mark" aria-hidden="true">
               M
@@ -190,7 +215,9 @@ export function App(): JSX.Element {
       <RenderNotice blockedCount={blockedCount} onEnableRemote={enableRemote} />
 
       <div className="markdit-body">
-        <FileExplorer activePath={filePath} onOpenFile={handleOpenFromSidebar} />
+        {!sidebarCollapsed && (
+          <FileExplorer activePath={filePath} onOpenFile={handleOpenFromSidebar} />
+        )}
 
         <main className="markdit-main">
           {view === 'read' ? (
