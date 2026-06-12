@@ -6,7 +6,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenedDocument {
     pub path: String,
@@ -41,7 +41,7 @@ pub fn document_open(path: String) -> CommandResult<OpenedDocument> {
     })
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveResult {
     pub content_hash: String,

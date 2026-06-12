@@ -78,7 +78,7 @@ value as a Markdown viewer before editing exists.
 - [X] T017 [P] [US1] Sanitization unit tests asserting `<script>`, `onerror=`, and `javascript:` URLs are stripped in `tests/unit/sanitize.test.ts` (FR-003)
 - [X] T018 [P] [US1] Remote-content gate test: no network when `allowRemoteContent:false` in `tests/e2e/remote-content.spec.ts` (FR-003, SC-008)
 - [ ] T019 [P] [US1] Performance test: a 1 MB fixture opens and renders in < 1 s in `tests/e2e/performance-open.spec.ts` (SC-002)
-- [ ] T020 [P] [US1] Rust contract test: `document_open` round-trips bytes unchanged for the corpus in `src-tauri/src/tests/document_open.rs`
+- [X] T020 [P] [US1] Rust contract test: `document_open` round-trips bytes unchanged for the corpus in `src-tauri/src/tests/document_open.rs`
 - [X] T021 [P] [US1] axe-core scan of the reader/render view in `tests/a11y/reader.spec.ts` (WCAG 2.2 AA, FR-013)
 
 ### Implementation for User Story 1
@@ -111,7 +111,7 @@ verify the resulting `.md` is valid standard Markdown that re-renders identicall
 
 - [X] T031 [P] [US2] Golden-file round-trip test: `serialize(parse(md))` equals expected with `normalize:false` for all corpus fixtures in `tests/corpus/roundtrip.test.ts` (FR-005, SC-003)
 - [X] T032 [P] [US2] Toolbar mapping tests: every `FormattingAction` → its expected standard Markdown construct in `tests/unit/formatting-mapping.test.ts` (FR-004, Principle II)
-- [ ] T033 [P] [US2] Rust contract test: `document_save` returns `CONFLICT` when on-disk hash differs in `src-tauri/src/tests/document_save_conflict.rs` (FR-005)
+- [X] T033 [P] [US2] Rust contract test: `document_save` returns `CONFLICT` when on-disk hash differs in `src-tauri/src/tests/document_save_conflict.rs` (FR-005)
 - [ ] T034 [P] [US2] E2E: format a paragraph (bold/heading/list/link) via toolbar only in < 30 s in `tests/e2e/toolbar-format.spec.ts` (SC-004)
 - [ ] T035 [P] [US2] axe-core + keyboard-only test of the editor and toolbar in `tests/a11y/editor.spec.ts` (FR-013, SC-007)
 
@@ -123,7 +123,7 @@ verify the resulting `.md` is valid standard Markdown that re-renders identicall
 - [X] T039 [US2] Build the accessibility-first formatting toolbar wiring `FormattingAction`s in `src/components/toolbar/Toolbar.tsx` (FR-004)
 - [X] T040 [US2] Wire keyboard shortcuts for all formatting actions in `src/components/editor/shortcuts.ts` (FR-004)
 - [X] T041 [US2] Implement the toggleable raw Markdown source view in `src/components/source-view/SourceView.tsx` (FR-006)
-- [ ] T042 [US2] Implement the `document_save` and `document_save_as` Rust commands with hash-based conflict detection in `src-tauri/src/commands/document.rs` (FR-005)
+- [X] T042 [US2] Implement the `document_save` and `document_save_as` Rust commands with hash-based conflict detection in `src-tauri/src/commands/document.rs` (FR-005)
 - [ ] T043 [US2] Implement external-change detection (`fs_watch`) and the save-conflict prompt in `src-tauri/src/fs_watch.rs` and `src/components/dialogs/ConflictDialog.tsx` (Edge Case)
 - [X] T044 [US2] Isolate and make reversible any non-portable constructs during editing in `src/markdown/tiptap-bridge.ts` (Principle II)
 

@@ -1,0 +1,9 @@
+# Pin the Rust toolchain for the Tauri core.
+#
+# Tauri 2's dependency tree (notably the `time`/`cookie` crates) hits a
+# spurious "conflicting implementations" (E0119) trait-resolution error on
+# very recent nightly-adjacent stable compilers. Pinning a known-good stable
+# release keeps `cargo build`/`cargo test` reproducible across machines.
+[toolchain]
+channel = "1.88.0"
+profile = "minimal"

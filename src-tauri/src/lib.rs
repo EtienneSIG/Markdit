@@ -5,6 +5,9 @@
 mod commands;
 mod fs_watch;
 
+#[cfg(test)]
+mod tests;
+
 use commands::{document, export, settings, update};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
