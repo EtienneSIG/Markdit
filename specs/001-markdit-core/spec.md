@@ -1,0 +1,226 @@
+# Feature Specification: Markdit Core Editor
+
+**Feature Branch**: `001-markdit-core`
+
+**Created**: 2026-06-12
+
+**Status**: Draft
+
+**Input**: User description: "Éditeur de Markdown : (1) lire les fichiers
+markdown comme sur Git, (2) édition visuelle sans écrire de markdown (barre de
+style, police…), (3) installable sur Windows, (4) export vers différents formats
+(Word, OneNote, Loop…). Conformité aux réglementations européennes et
+nord-américaines, vérifiée a posteriori par des agents dédiés qui créent des
+backlogs."
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Read & render Markdown like on Git (Priority: P1)
+
+A user opens an existing `.md` file and sees it rendered with the same visual
+fidelity they would expect on a Git hosting platform (headings, lists, tables,
+code blocks with syntax highlighting, task lists, links, images, blockquotes).
+
+**Why this priority**: Reading/rendering is the foundational capability and the
+minimum viable product — without trustworthy rendering, nothing else matters.
+
+**Independent Test**: Open a representative GitHub-Flavored Markdown file and
+confirm all standard elements render correctly and match a reference rendering;
+delivers immediate value as a Markdown viewer even before editing exists.
+
+**Acceptance Scenarios**:
+
+1. **Given** a valid `.md` file on disk, **When** the user opens it, **Then** the
+   document is displayed as formatted rich content (not raw syntax) within 1
+   second for files up to 1 MB.
+2. **Given** a Markdown file containing GFM tables, task lists, fenced code, and
+   images, **When** it is rendered, **Then** each element appears with correct
+   formatting equivalent to a Git platform reference rendering.
+3. **Given** a file with embedded raw HTML or external links, **When** it is
+   rendered, **Then** content is sanitized and no remote content is loaded
+   without user consent.
+
+---
+
+### User Story 2 - Edit visually without writing Markdown (Priority: P2)
+
+A user applies formatting (bold, italic, headings, lists, links, tables, fonts,
+text styles) using a visual toolbar and keyboard shortcuts, never needing to
+type Markdown syntax. The saved file remains clean, portable Markdown.
+
+**Why this priority**: This is the core differentiator — WYSIWYG editing that
+keeps Markdown as the source of truth.
+
+**Independent Test**: Create a new document, apply each toolbar action, save,
+and verify the resulting `.md` is valid, standard Markdown that re-renders
+identically; delivers value as a no-syntax authoring tool.
+
+**Acceptance Scenarios**:
+
+1. **Given** the editor is open, **When** the user selects text and clicks
+   "Bold", **Then** the text appears bold and the saved Markdown uses standard
+   emphasis markers.
+2. **Given** the user applies a heading, list, link, or table via the toolbar,
+   **When** the document is saved, **Then** the output is valid standard Markdown
+   with no proprietary markers.
+3. **Given** a document edited visually, **When** it is saved and reopened,
+   **Then** content round-trips losslessly (no meaningful content change).
+4. **Given** the user wants the raw view, **When** they toggle "Markdown source",
+   **Then** the underlying Markdown is shown and remains editable.
+
+---
+
+### User Story 3 - Install and run on Windows (Priority: P2)
+
+A Windows user downloads and installs Markdit through a standard, signed Windows
+installer and launches it like any native desktop application.
+
+**Why this priority**: Distribution on Windows is an explicit product
+requirement; without an installable build the product cannot reach users.
+
+**Independent Test**: Run the signed installer on a clean supported Windows
+machine, confirm the app installs, launches, opens a file, and uninstalls
+cleanly; delivers a distributable product.
+
+**Acceptance Scenarios**:
+
+1. **Given** a supported Windows version, **When** the user runs the installer,
+   **Then** the application installs without administrator errors and creates the
+   expected Start menu / desktop entries.
+2. **Given** the installer package, **When** its signature is inspected, **Then**
+   it is validly code-signed by the publisher.
+3. **Given** an installed instance, **When** a newer version is released,
+   **Then** the user can update via an authenticated, integrity-verified channel.
+4. **Given** an installed instance, **When** the user uninstalls, **Then** the
+   application is removed cleanly and user documents are preserved.
+
+---
+
+### User Story 4 - Export to other formats (Word, OneNote, Loop, …) (Priority: P3)
+
+A user exports the current document to an external format — Microsoft Word
+(`.docx`), OneNote, and Microsoft Loop — preserving structure and formatting as
+faithfully as the target format allows.
+
+**Why this priority**: Export extends reach into existing workflows but depends
+on reliable rendering and editing first.
+
+**Independent Test**: Take a document exercising all supported elements, export
+to each target, and verify structure/formatting fidelity in the destination
+application; delivers interoperability value.
+
+**Acceptance Scenarios**:
+
+1. **Given** a document with headings, lists, tables, code, and links, **When**
+   the user exports to Word, **Then** a valid `.docx` opens in Word with
+   structure and formatting preserved as faithfully as the format allows.
+2. **Given** the same document, **When** the user exports to OneNote and to Loop,
+   **Then** the content is created in the target with structure preserved and the
+   user is informed of any elements that cannot be represented.
+3. **Given** an export that requires authentication to a cloud service, **When**
+   the user initiates it, **Then** consent is explicit and credentials/content
+   are handled per the privacy principles.
+
+---
+
+### Edge Cases
+
+- What happens when a Markdown file is malformed or uses non-standard extensions?
+  → The editor renders best-effort, never crashes, and surfaces a clear notice.
+- How does the system handle very large documents (e.g., > 10 MB)? → Performance
+  must degrade gracefully with a documented threshold.
+- What happens when an export target is unavailable (offline, not signed in, or
+  feature not representable)? → The user is informed; no silent data loss.
+- How are embedded HTML, scripts, or remote images treated? → Sanitized;
+  remote content is not fetched without consent.
+- What happens on save conflicts (file changed on disk externally)? → The user is
+  prompted; no overwrite without confirmation.
+- How are non-Latin scripts, RTL text, and emoji handled in editing and export?
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+- **FR-001**: System MUST open and render `.md`/`.markdown` files as formatted
+  rich content using CommonMark + GitHub Flavored Markdown.
+- **FR-002**: System MUST render standard GFM elements: headings, paragraphs,
+  emphasis, lists, task lists, tables, fenced code with syntax highlighting,
+  blockquotes, links, images, and horizontal rules.
+- **FR-003**: System MUST sanitize untrusted/embedded HTML and MUST NOT fetch
+  remote content without explicit user consent.
+- **FR-004**: Users MUST be able to apply formatting (bold, italic, headings,
+  lists, links, tables, fonts, text styles) via a visual toolbar and keyboard
+  shortcuts without typing Markdown syntax.
+- **FR-005**: System MUST persist documents as plain, standard Markdown text and
+  MUST guarantee lossless round-tripping of edited documents.
+- **FR-006**: System MUST provide a toggleable raw Markdown source view.
+- **FR-007**: System MUST provide a signed Windows installer and a clean
+  uninstall path. [NEEDS CLARIFICATION: minimum supported Windows versions —
+  Windows 10 and 11 assumed.]
+- **FR-008**: System MUST support application updates over an authenticated,
+  integrity-verified channel.
+- **FR-009**: System MUST export the active document to Microsoft Word (`.docx`).
+- **FR-010**: System MUST export the active document to OneNote and Microsoft
+  Loop, informing the user of any non-representable elements.
+- **FR-011**: System MUST process and store documents locally by default; no
+  document content leaves the device without explicit, informed consent.
+- **FR-012**: System MUST expose privacy controls (consent management, export of
+  personal data, deletion) to satisfy GDPR and CCPA/CPRA data-subject rights.
+- **FR-013**: System MUST meet WCAG 2.2 AA, EN 301 549, and Section 508 for all
+  primary user flows (full keyboard operability, screen-reader support,
+  sufficient contrast).
+- **FR-014**: System MUST make telemetry, if present, opt-in, anonymized, and
+  disableable, with a clear disclosure.
+- **FR-015**: System MUST maintain an SBOM and a documented vulnerability
+  handling / update process aligned with the Cyber Resilience Act.
+- **FR-016**: Compliance agents MUST be able to audit specs, plan, tasks, and
+  implementation a posteriori and emit a tracked compliance backlog.
+
+### Key Entities *(include if feature involves data)*
+
+- **Document**: A Markdown file the user reads/edits — content, file path,
+  encoding, dirty/saved state. Source of truth is plain Markdown text.
+- **Formatting Action**: A visual editing command (e.g., bold, heading, table)
+  mapped deterministically to a standard Markdown construct.
+- **Export Target**: A destination format/service (Word, OneNote, Loop) with its
+  capabilities and limitations regarding representable elements.
+- **Privacy/Consent Setting**: User-controlled preferences governing telemetry,
+  remote content, and cloud export.
+- **Compliance Finding**: An audit result referencing a regulation/clause, with
+  severity, affected artifact, and proposed remediation — stored in the backlog.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: 100% of standard GFM elements in a reference test corpus render
+  correctly compared to a Git-platform reference rendering.
+- **SC-002**: Files up to 1 MB open and render in under 1 second on a typical
+  supported Windows machine.
+- **SC-003**: 100% of documents edited only through the visual toolbar save as
+  valid standard Markdown and round-trip without meaningful content change.
+- **SC-004**: A user can format a paragraph (bold, heading, list, link) using
+  only the toolbar in under 30 seconds without typing Markdown.
+- **SC-005**: The Windows installer is validly code-signed and installs,
+  launches, and uninstalls cleanly on all supported Windows versions.
+- **SC-006**: Export to Word/OneNote/Loop preserves document structure for at
+  least 95% of supported elements, with the remainder explicitly reported.
+- **SC-007**: All primary flows pass WCAG 2.2 AA automated and keyboard-only
+  manual checks with zero blocking issues.
+- **SC-008**: Zero document content leaves the device without recorded explicit
+  consent (verified by audit).
+- **SC-009**: Each compliance audit produces a backlog where every finding cites
+  a specific regulation/clause and a severity, and zero `CRITICAL` items remain
+  open at release.
+
+## Assumptions
+
+- Target platform for the first release is Windows 10 and Windows 11 (desktop).
+- The product is offered to end users in the EU/EEA and North America, making
+  GDPR, CCPA/CPRA, accessibility, and Cyber Resilience Act obligations relevant.
+- OneNote and Loop export rely on Microsoft 365 services and require user
+  authentication and consent; offline export targets Word `.docx` primarily.
+- Markdown standard baseline is CommonMark + GitHub Flavored Markdown.
+- Document content is the user's personal data domain; the product is local-first.
+- Some elements (e.g., advanced Loop components) may not be fully representable;
+  graceful, transparent degradation is acceptable.
