@@ -18,6 +18,10 @@ const STRINGS: Record<Locale, Dict> = {
     'view.read': 'Read',
     'view.edit': 'Edit',
     'view.source': 'Source',
+    'view.mode': 'View mode',
+    'ribbon.group.font': 'Font',
+    'ribbon.group.paragraph': 'Paragraph',
+    'ribbon.group.insert': 'Insert',
     'editor.label': 'Markdown editor',
     'notice.remoteBlocked':
       'Remote content is blocked. Enable it in Settings to load remote images.',
@@ -56,6 +60,10 @@ const STRINGS: Record<Locale, Dict> = {
     'view.read': 'Lecture',
     'view.edit': 'Édition',
     'view.source': 'Source',
+    'view.mode': 'Mode d’affichage',
+    'ribbon.group.font': 'Police',
+    'ribbon.group.paragraph': 'Paragraphe',
+    'ribbon.group.insert': 'Insérer',
     'editor.label': 'Éditeur Markdown',
     'notice.remoteBlocked':
       'Le contenu distant est bloqué. Activez-le dans les Réglages pour charger les images distantes.',

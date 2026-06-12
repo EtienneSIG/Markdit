@@ -97,31 +97,93 @@ export function App(): JSX.Element {
     else setSettings((s) => ({ ...s, allowRemoteContent: true }));
   }, []);
 
+  const fileLabel = filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md';
+
   return (
     <div className="markdit-app">
-      <header className="markdit-titlebar">
-        <strong>{t('app.title')}</strong>
-        <span className="markdit-filename">{filePath ?? 'Untitled.md'}</span>
-        <nav className="markdit-actions">
-          <button type="button" onClick={() => setView('read')} aria-pressed={view === 'read'}>
-            {t('view.read')}
-          </button>
-          <button type="button" onClick={() => setView('edit')} aria-pressed={view === 'edit'}>
-            {t('view.edit')}
-          </button>
-          <button type="button" onClick={() => setExportOpen(true)}>
-            {t('action.export')}
-          </button>
+      <header className="markdit-topbar">
+        <div className="markdit-topbar-left">
+          <span className="markdit-brand">
+            <span className="markdit-brand-mark" aria-hidden="true">
+              M
+            </span>
+            {t('app.title')}
+          </span>
+          <span className="markdit-breadcrumb-sep" aria-hidden="true">
+            ›
+          </span>
+          <span className="markdit-filename" title={filePath ?? fileLabel}>
+            {fileLabel}
+          </span>
+        </div>
+
+        <div className="markdit-topbar-center">
+          <div className="markdit-segmented" role="group" aria-label={t('view.mode')}>
+            <button type="button" onClick={() => setView('read')} aria-pressed={view === 'read'}>
+              {t('view.read')}
+            </button>
+            <button type="button" onClick={() => setView('edit')} aria-pressed={view === 'edit'}>
+              {t('view.edit')}
+            </button>
+          </div>
+        </div>
+
+        <nav className="markdit-topbar-right markdit-actions" aria-label={t('app.title')}>
           {isTauriAvailable() && (
             <>
               <button type="button" onClick={handleOpen}>
+                <svg
+                  className="markdit-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                </svg>
                 {t('action.open')}
               </button>
               <button type="button" onClick={handleSave}>
+                <svg
+                  className="markdit-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                  <path d="M8 4v5h7V4M8 21v-7h8v7" />
+                </svg>
                 {t('action.save')}
               </button>
             </>
           )}
+          <button type="button" className="is-primary" onClick={() => setExportOpen(true)}>
+            <svg
+              className="markdit-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 3v12" />
+              <path d="m7 8 5-5 5 5" />
+              <path d="M5 21h14" />
+            </svg>
+            {t('action.export')}
+          </button>
         </nav>
       </header>
 
@@ -146,7 +208,7 @@ export function App(): JSX.Element {
       <ExportDialog
         open={exportOpen}
         markdown={markdown}
-        fileName={filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md'}
+        fileName={fileLabel}
         settings={settings}
         onSettingsChange={setSettings}
         onClose={() => setExportOpen(false)}
@@ -154,7 +216,7 @@ export function App(): JSX.Element {
 
       <ConflictDialog
         open={conflictOpen}
-        fileName={filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md'}
+        fileName={fileLabel}
         onReload={handleReloadFromDisk}
         onKeep={() => setConflictOpen(false)}
       />
