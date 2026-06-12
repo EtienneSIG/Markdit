@@ -108,6 +108,105 @@ a:focus-visible {
   padding: 1.5rem 2rem;
 }
 
+/* Two-column layout: persistent left sidebar + main content. */
+.markdit-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.markdit-sidebar {
+  width: 16rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.markdit-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdit-sidebar-header button {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.markdit-sidebar-root {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdit-sidebar-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0.25rem 0;
+}
+
+.markdit-sidebar-empty {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.markdit-sidebar-error {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #b00020;
+}
+
+.markdit-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.markdit-tree-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--fg);
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdit-tree-row:hover {
+  background: var(--border);
+}
+
+.markdit-tree-file.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.markdit-tree-dir {
+  font-weight: 600;
+}
+
 .markdit-reader,
 .markdit-editor {
   max-width: 50rem;
@@ -150,4 +249,78 @@ a:focus-visible {
   margin-bottom: 1rem;
   position: sticky;
   top: 0;
+}
+
+/* Export dialog (modal) */
+.markdit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.markdit-modal {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  width: min(28rem, 90vw);
+  max-height: 85vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.markdit-modal h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.markdit-modal select {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+}
+
+.markdit-export-dropped,
+.markdit-export-consent {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.markdit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.markdit-modal-actions button,
+.markdit-export-consent button {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+
+.markdit-source {
+  width: 100%;
+  min-height: 60vh;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  background: var(--code-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
 }

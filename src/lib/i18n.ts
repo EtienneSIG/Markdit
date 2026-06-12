@@ -21,7 +21,24 @@ const STRINGS: Record<Locale, Dict> = {
     'notice.remoteBlocked':
       'Remote content is blocked. Enable it in Settings to load remote images.',
     'notice.enableRemote': 'Enable remote content',
+    'notice.largeFile':
+      'This file is large; syntax highlighting is disabled to keep it responsive.',
     'export.word': 'Export to Word',
+    'export.title': 'Export document',
+    'export.target': 'Destination',
+    'export.run': 'Export',
+    'export.cancel': 'Cancel',
+    'export.close': 'Close',
+    'export.consentNeeded': 'This destination needs your consent before any content leaves your device.',
+    'export.grantConsent': 'Grant consent and continue',
+    'export.dropped': 'Some elements are not supported and will be omitted:',
+    'export.success': 'Export complete.',
+    'export.failed': 'Export failed.',
+    'sidebar.title': 'File navigation',
+    'sidebar.files': 'Files',
+    'sidebar.openFolder': 'Open folder',
+    'sidebar.empty': 'Open a folder to browse your Markdown files.',
+    'sidebar.unsupported': 'Folder browsing is not supported in this environment. Use Open instead.',
   },
   fr: {
     'app.title': 'Markdit',
@@ -36,7 +53,26 @@ const STRINGS: Record<Locale, Dict> = {
     'notice.remoteBlocked':
       'Le contenu distant est bloqué. Activez-le dans les Réglages pour charger les images distantes.',
     'notice.enableRemote': 'Activer le contenu distant',
+    'notice.largeFile':
+      'Ce fichier est volumineux ; la coloration syntaxique est désactivée pour rester réactif.',
     'export.word': 'Exporter vers Word',
+    'export.title': 'Exporter le document',
+    'export.target': 'Destination',
+    'export.run': 'Exporter',
+    'export.cancel': 'Annuler',
+    'export.close': 'Fermer',
+    'export.consentNeeded':
+      'Cette destination nécessite votre consentement avant que tout contenu ne quitte votre appareil.',
+    'export.grantConsent': 'Consentir et continuer',
+    'export.dropped': 'Certains éléments ne sont pas pris en charge et seront omis :',
+    'export.success': 'Export terminé.',
+    'export.failed': "Échec de l'export.",
+    'sidebar.title': 'Navigation des fichiers',
+    'sidebar.files': 'Fichiers',
+    'sidebar.openFolder': 'Ouvrir un dossier',
+    'sidebar.empty': 'Ouvrez un dossier pour parcourir vos fichiers Markdown.',
+    'sidebar.unsupported':
+      "La navigation par dossier n'est pas prise en charge dans cet environnement. Utilisez Ouvrir.",
   },
 };
 

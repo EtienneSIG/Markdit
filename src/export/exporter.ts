@@ -7,6 +7,8 @@ import type { ExportResult, ExportTarget, PrivacySettings } from '../lib/types';
 import { parse } from '../markdown/parse';
 import { exportToDocx } from './docx';
 import { exportDocx as saveDocxViaCore } from '../lib/ipc';
+import { exportToOneNote } from './graph/onenote';
+import { exportToLoop } from './graph/loop';
 import { hasConsent } from '../privacy/consent';
 import { track } from '../privacy/telemetry';
 
@@ -81,4 +83,29 @@ export async function exportWord(markdown: string, suggestedName: string): Promi
 /** Guard a cloud export behind recorded consent (FR-011, SC-008). */
 export function canExportToCloud(settings: PrivacySettings, target: 'onenote' | 'loop'): boolean {
   return hasConsent(settings, target);
+}
+
+/**
+ * Export to a consented cloud target (OneNote/Loop). When consent is missing,
+ * returns `cancelled` and performs zero network requests (FR-011, SC-008).
+ */
+export async function exportCloud(
+  target: 'onenote' | 'loop',
+  markdown: string,
+  nameOrTitle: string,
+  settings: PrivacySettings,
+): Promise<ExportResult> {
+  if (!canExportToCloud(settings, target)) {
+    return {
+      target,
+      status: 'cancelled',
+      outputLocation: null,
+      droppedElements: [],
+      message: 'Consent required before exporting to this destination.',
+    };
+  }
+  track({ name: 'export', props: { target } });
+  return target === 'onenote'
+    ? exportToOneNote(markdown, nameOrTitle)
+    : exportToLoop(markdown, nameOrTitle);
 }

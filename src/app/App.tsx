@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Reader } from '../components/reader/Reader';
 import { RenderNotice } from '../components/reader/RenderNotice';
 import { Editor } from '../components/editor/Editor';
+import { ExportDialog } from '../components/dialogs/ExportDialog';
+import { FileExplorer, type SelectedFile } from '../components/sidebar/FileExplorer';
 import {
   documentOpen,
   documentSaveAs,
@@ -23,6 +25,7 @@ export function App(): JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>('read');
   const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -53,6 +56,12 @@ export function App(): JSX.Element {
     if (res.ok) setFilePath(res.value.path);
   }, [markdown]);
 
+  const handleOpenFromSidebar = useCallback((file: SelectedFile) => {
+    setMarkdown(file.markdown);
+    setFilePath(file.path);
+    setView('read');
+  }, []);
+
   const enableRemote = useCallback(async () => {
     const res = await settingsSet({ allowRemoteContent: true });
     if (res.ok) setSettings(res.value);
@@ -71,6 +80,9 @@ export function App(): JSX.Element {
           <button type="button" onClick={() => setView('edit')} aria-pressed={view === 'edit'}>
             {t('view.edit')}
           </button>
+          <button type="button" onClick={() => setExportOpen(true)}>
+            {t('action.export')}
+          </button>
           {isTauriAvailable() && (
             <>
               <button type="button" onClick={handleOpen}>
@@ -86,17 +98,30 @@ export function App(): JSX.Element {
 
       <RenderNotice blockedCount={blockedCount} onEnableRemote={enableRemote} />
 
-      <main className="markdit-main">
-        {view === 'read' ? (
-          <Reader
-            markdown={markdown}
-            allowRemoteContent={settings.allowRemoteContent}
-            theme={settings.theme}
-          />
-        ) : (
-          <Editor markdown={markdown} onChange={setMarkdown} />
-        )}
-      </main>
+      <div className="markdit-body">
+        <FileExplorer activePath={filePath} onOpenFile={handleOpenFromSidebar} />
+
+        <main className="markdit-main">
+          {view === 'read' ? (
+            <Reader
+              markdown={markdown}
+              allowRemoteContent={settings.allowRemoteContent}
+              theme={settings.theme}
+            />
+          ) : (
+            <Editor markdown={markdown} onChange={setMarkdown} />
+          )}
+        </main>
+      </div>
+
+      <ExportDialog
+        open={exportOpen}
+        markdown={markdown}
+        fileName={filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md'}
+        settings={settings}
+        onSettingsChange={setSettings}
+        onClose={() => setExportOpen(false)}
+      />
     </div>
   );
 }
