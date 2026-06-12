@@ -1,0 +1,153 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #656d76;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --code-bg: #f6f8fa;
+}
+
+[data-theme='dark'] {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --border: #30363d;
+  --accent: #4493f8;
+  --code-bg: #161b22;
+}
+
+[data-theme='high-contrast'] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: #d0d0d0;
+  --border: #ffffff;
+  --accent: #ffd700;
+  --code-bg: #0a0a0a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.markdit-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.markdit-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdit-filename {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.markdit-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.markdit-actions button,
+.markdit-toolbar button {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.markdit-actions button[aria-pressed='true'],
+.markdit-toolbar button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Visible focus indicator (WCAG 2.2 AA — 2.4.11/2.4.13). */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.markdit-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--code-bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.markdit-main {
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem 2rem;
+}
+
+.markdit-reader,
+.markdit-editor {
+  max-width: 50rem;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.markdit-reader pre,
+.markdit-editor pre {
+  background: var(--code-bg);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.markdit-reader code,
+.markdit-editor code {
+  background: var(--code-bg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.markdit-reader table,
+.markdit-editor table {
+  border-collapse: collapse;
+}
+
+.markdit-reader th,
+.markdit-reader td,
+.markdit-editor th,
+.markdit-editor td {
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.6rem;
+}
+
+.markdit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+}

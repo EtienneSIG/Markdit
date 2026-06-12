@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+build/
+out/
+*.local
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# SBOM output
+sbom/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+.env
+.env.*
+!.env.example
+
+# Keep VS Code workspace settings provided by spec-kit
+!.vscode/

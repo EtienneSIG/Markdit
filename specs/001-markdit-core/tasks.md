@@ -32,12 +32,12 @@ Desktop app layout (per plan.md):
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create the repository structure per plan.md: `src-tauri/src/commands/`, `src/{app,components,markdown,export,privacy,lib}/`, and `tests/{unit,e2e,a11y,corpus/input,corpus/expected}/`
-- [ ] T002 Initialize the Tauri 2 Rust core in `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/build.rs`, and `src-tauri/src/main.rs` with `tauri`, `tauri-plugin-fs`, `tauri-plugin-dialog`, `tauri-plugin-updater`
-- [ ] T003 Initialize the frontend in `package.json` with React 18, Vite 5, TypeScript 5, TipTap 2, `unified`, `remark-parse`, `remark-gfm`, `remark-rehype`, `remark-stringify`, `rehype-sanitize`, `rehype-stringify`, Shiki, `docx`, `@azure/msal-browser`, Microsoft Graph SDK
-- [ ] T004 [P] Configure linting/formatting: ESLint + Prettier for `src/` and `rustfmt` + `clippy` for `src-tauri/` (config files at repo root)
-- [ ] T005 [P] Configure test runners in `vitest.config.ts`, `playwright.config.ts`, and `@axe-core/playwright`; wire `cargo test` for `src-tauri/src/tests/`
-- [ ] T006 [P] Create the CI skeleton in `.github/workflows/ci.yml` running lint, `cargo test`, Vitest, Playwright, axe-core, and the corpus suite
+- [X] T001 Create the repository structure per plan.md: `src-tauri/src/commands/`, `src/{app,components,markdown,export,privacy,lib}/`, and `tests/{unit,e2e,a11y,corpus/input,corpus/expected}/`
+- [X] T002 Initialize the Tauri 2 Rust core in `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/build.rs`, and `src-tauri/src/main.rs` with `tauri`, `tauri-plugin-fs`, `tauri-plugin-dialog`, `tauri-plugin-updater`
+- [X] T003 Initialize the frontend in `package.json` with React 18, Vite 5, TypeScript 5, TipTap 2, `unified`, `remark-parse`, `remark-gfm`, `remark-rehype`, `remark-stringify`, `rehype-sanitize`, `rehype-stringify`, Shiki, `docx`, `@azure/msal-browser`, Microsoft Graph SDK
+- [X] T004 [P] Configure linting/formatting: ESLint + Prettier for `src/` and `rustfmt` + `clippy` for `src-tauri/` (config files at repo root)
+- [X] T005 [P] Configure test runners in `vitest.config.ts`, `playwright.config.ts`, and `@axe-core/playwright`; wire `cargo test` for `src-tauri/src/tests/`
+- [X] T006 [P] Create the CI skeleton in `.github/workflows/ci.yml` running lint, `cargo test`, Vitest, Playwright, axe-core, and the corpus suite
 
 ---
 
@@ -47,15 +47,15 @@ Desktop app layout (per plan.md):
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Define shared TypeScript types (`Document`, `DocumentState`, `FormattingAction`, `ExportTarget`, `ExportResult`, `PrivacySettings`, `ConsentRecord`, `CommandError`) in `src/lib/types.ts` per data-model.md
-- [ ] T008 Implement the typed Tauri IPC bridge and `CommandError` mapping in `src/lib/ipc.ts` (errors returned, never thrown opaquely) per contracts/tauri-commands.md
-- [ ] T009 Scaffold the Markdown engine module in `src/markdown/{parse,serialize,sanitize,highlight}.ts` wiring the `unified` + `remark` + `rehype` pipeline (stubs + exported signatures) per contracts/markdown-engine.md
-- [ ] T010 [P] Scaffold Rust document commands (`document_open`, `document_save`, `document_save_as`, `document_watch`, `document_unwatch`) in `src-tauri/src/commands/document.rs` with content-hash + `CommandError` plumbing
-- [ ] T011 [P] Implement the local settings/consent store with default-local profile (telemetry off, remote content off, no consents) in `src-tauri/src/commands/settings.rs` per contracts/settings-consent.md
-- [ ] T012 [P] Build the app shell (`src/main.tsx`, `src/app/App.tsx`, base layout/routes) with keyboard-navigable scaffolding
-- [ ] T013 [P] Configure PII-free logging and error-handling infrastructure in `src/lib/logging.ts` and `src-tauri/src/lib.rs`
-- [ ] T014 [P] Build the golden-file round-trip corpus harness (loader + comparator) in `tests/corpus/runner.ts` reading `tests/corpus/input/` vs `tests/corpus/expected/`
-- [ ] T015 [P] Build the axe-core accessibility scan harness in `tests/a11y/axe-setup.ts` for reuse across all primary flows
+- [X] T007 Define shared TypeScript types (`Document`, `DocumentState`, `FormattingAction`, `ExportTarget`, `ExportResult`, `PrivacySettings`, `ConsentRecord`, `CommandError`) in `src/lib/types.ts` per data-model.md
+- [X] T008 Implement the typed Tauri IPC bridge and `CommandError` mapping in `src/lib/ipc.ts` (errors returned, never thrown opaquely) per contracts/tauri-commands.md
+- [X] T009 Scaffold the Markdown engine module in `src/markdown/{parse,serialize,sanitize,highlight}.ts` wiring the `unified` + `remark` + `rehype` pipeline (stubs + exported signatures) per contracts/markdown-engine.md
+- [X] T010 [P] Scaffold Rust document commands (`document_open`, `document_save`, `document_save_as`, `document_watch`, `document_unwatch`) in `src-tauri/src/commands/document.rs` with content-hash + `CommandError` plumbing
+- [X] T011 [P] Implement the local settings/consent store with default-local profile (telemetry off, remote content off, no consents) in `src-tauri/src/commands/settings.rs` per contracts/settings-consent.md
+- [X] T012 [P] Build the app shell (`src/main.tsx`, `src/app/App.tsx`, base layout/routes) with keyboard-navigable scaffolding
+- [X] T013 [P] Configure PII-free logging and error-handling infrastructure in `src/lib/logging.ts` and `src-tauri/src/lib.rs`
+- [X] T014 [P] Build the golden-file round-trip corpus harness (loader + comparator) in `tests/corpus/runner.ts` reading `tests/corpus/input/` vs `tests/corpus/expected/`
+- [X] T015 [P] Build the axe-core accessibility scan harness in `tests/a11y/axe-setup.ts` for reuse across all primary flows
 
 **Checkpoint**: Foundation ready — user stories can now begin
 
@@ -74,22 +74,22 @@ value as a Markdown viewer before editing exists.
 
 ### Tests for User Story 1 (write FIRST, ensure they FAIL) ⚠️
 
-- [ ] T016 [P] [US1] Golden-file render test comparing `renderHtml(parse(md))` to reference fixtures in `tests/corpus/` (SC-001, FR-002)
-- [ ] T017 [P] [US1] Sanitization unit tests asserting `<script>`, `onerror=`, and `javascript:` URLs are stripped in `tests/unit/sanitize.test.ts` (FR-003)
-- [ ] T018 [P] [US1] Remote-content gate test: no network when `allowRemoteContent:false` in `tests/e2e/remote-content.spec.ts` (FR-003, SC-008)
+- [X] T016 [P] [US1] Golden-file render test comparing `renderHtml(parse(md))` to reference fixtures in `tests/corpus/` (SC-001, FR-002)
+- [X] T017 [P] [US1] Sanitization unit tests asserting `<script>`, `onerror=`, and `javascript:` URLs are stripped in `tests/unit/sanitize.test.ts` (FR-003)
+- [X] T018 [P] [US1] Remote-content gate test: no network when `allowRemoteContent:false` in `tests/e2e/remote-content.spec.ts` (FR-003, SC-008)
 - [ ] T019 [P] [US1] Performance test: a 1 MB fixture opens and renders in < 1 s in `tests/e2e/performance-open.spec.ts` (SC-002)
 - [ ] T020 [P] [US1] Rust contract test: `document_open` round-trips bytes unchanged for the corpus in `src-tauri/src/tests/document_open.rs`
-- [ ] T021 [P] [US1] axe-core scan of the reader/render view in `tests/a11y/reader.spec.ts` (WCAG 2.2 AA, FR-013)
+- [X] T021 [P] [US1] axe-core scan of the reader/render view in `tests/a11y/reader.spec.ts` (WCAG 2.2 AA, FR-013)
 
 ### Implementation for User Story 1
 
-- [ ] T022 [US1] Implement `parse()` (CommonMark + `remark-gfm` → mdast) in `src/markdown/parse.ts` (FR-001)
-- [ ] T023 [P] [US1] Implement the `rehype-sanitize` schema in `src/markdown/sanitize.ts` (FR-003, Principle V)
-- [ ] T024 [P] [US1] Implement fenced-code syntax highlighting (Shiki) in `src/markdown/highlight.ts` (FR-002)
-- [ ] T025 [US1] Implement `renderHtml(tree, opts)` with consent-gated remote content in `src/markdown/render.ts` (depends on T022–T024)
-- [ ] T026 [US1] Implement the `document_open` Rust command (read `.md`, `contentHash`, `sizeBytes`, fail-soft on missing/malformed) in `src-tauri/src/commands/document.rs`
-- [ ] T027 [US1] Build the reader/render React component (rich content, not raw syntax) in `src/components/editor/Reader.tsx`
-- [ ] T028 [US1] Add malformed-file best-effort rendering with a clear non-crashing notice in `src/components/dialogs/RenderNotice.tsx` (Edge Case)
+- [X] T022 [US1] Implement `parse()` (CommonMark + `remark-gfm` → mdast) in `src/markdown/parse.ts` (FR-001)
+- [X] T023 [P] [US1] Implement the `rehype-sanitize` schema in `src/markdown/sanitize.ts` (FR-003, Principle V)
+- [X] T024 [P] [US1] Implement fenced-code syntax highlighting (Shiki) in `src/markdown/highlight.ts` (FR-002)
+- [X] T025 [US1] Implement `renderHtml(tree, opts)` with consent-gated remote content in `src/markdown/render.ts` (depends on T022–T024)
+- [X] T026 [US1] Implement the `document_open` Rust command (read `.md`, `contentHash`, `sizeBytes`, fail-soft on missing/malformed) in `src-tauri/src/commands/document.rs`
+- [X] T027 [US1] Build the reader/render React component (rich content, not raw syntax) in `src/components/editor/Reader.tsx`
+- [X] T028 [US1] Add malformed-file best-effort rendering with a clear non-crashing notice in `src/components/dialogs/RenderNotice.tsx` (Edge Case)
 - [ ] T029 [US1] Add documented graceful degradation for files > 10 MB in `src/components/editor/Reader.tsx` (Edge Case)
 - [ ] T030 [US1] Add reader accessibility semantics (keyboard, screen-reader landmarks/labels, contrast) in `src/components/editor/Reader.tsx` (FR-013)
 
@@ -109,23 +109,23 @@ verify the resulting `.md` is valid standard Markdown that re-renders identicall
 
 ### Tests for User Story 2 (write FIRST, ensure they FAIL) ⚠️
 
-- [ ] T031 [P] [US2] Golden-file round-trip test: `serialize(parse(md))` equals expected with `normalize:false` for all corpus fixtures in `tests/corpus/roundtrip.test.ts` (FR-005, SC-003)
-- [ ] T032 [P] [US2] Toolbar mapping tests: every `FormattingAction` → its expected standard Markdown construct in `tests/unit/formatting-mapping.test.ts` (FR-004, Principle II)
+- [X] T031 [P] [US2] Golden-file round-trip test: `serialize(parse(md))` equals expected with `normalize:false` for all corpus fixtures in `tests/corpus/roundtrip.test.ts` (FR-005, SC-003)
+- [X] T032 [P] [US2] Toolbar mapping tests: every `FormattingAction` → its expected standard Markdown construct in `tests/unit/formatting-mapping.test.ts` (FR-004, Principle II)
 - [ ] T033 [P] [US2] Rust contract test: `document_save` returns `CONFLICT` when on-disk hash differs in `src-tauri/src/tests/document_save_conflict.rs` (FR-005)
 - [ ] T034 [P] [US2] E2E: format a paragraph (bold/heading/list/link) via toolbar only in < 30 s in `tests/e2e/toolbar-format.spec.ts` (SC-004)
 - [ ] T035 [P] [US2] axe-core + keyboard-only test of the editor and toolbar in `tests/a11y/editor.spec.ts` (FR-013, SC-007)
 
 ### Implementation for User Story 2
 
-- [ ] T036 [US2] Implement deterministic `serialize()` (`remark-stringify`, stable markers) in `src/markdown/serialize.ts` (FR-005, SC-003)
-- [ ] T037 [US2] Implement `mdastToProseMirror()` and `proseMirrorToMdast()` in `src/markdown/tiptap-bridge.ts` (engine stays authoritative; depends on T036)
-- [ ] T038 [US2] Build the TipTap editor surface with nodes/marks for GFM in `src/components/editor/Editor.tsx`
-- [ ] T039 [US2] Build the accessibility-first formatting toolbar wiring `FormattingAction`s in `src/components/toolbar/Toolbar.tsx` (FR-004)
-- [ ] T040 [US2] Wire keyboard shortcuts for all formatting actions in `src/components/editor/shortcuts.ts` (FR-004)
-- [ ] T041 [US2] Implement the toggleable raw Markdown source view in `src/components/source-view/SourceView.tsx` (FR-006)
+- [X] T036 [US2] Implement deterministic `serialize()` (`remark-stringify`, stable markers) in `src/markdown/serialize.ts` (FR-005, SC-003)
+- [X] T037 [US2] Implement `mdastToProseMirror()` and `proseMirrorToMdast()` in `src/markdown/tiptap-bridge.ts` (engine stays authoritative; depends on T036)
+- [X] T038 [US2] Build the TipTap editor surface with nodes/marks for GFM in `src/components/editor/Editor.tsx`
+- [X] T039 [US2] Build the accessibility-first formatting toolbar wiring `FormattingAction`s in `src/components/toolbar/Toolbar.tsx` (FR-004)
+- [X] T040 [US2] Wire keyboard shortcuts for all formatting actions in `src/components/editor/shortcuts.ts` (FR-004)
+- [X] T041 [US2] Implement the toggleable raw Markdown source view in `src/components/source-view/SourceView.tsx` (FR-006)
 - [ ] T042 [US2] Implement the `document_save` and `document_save_as` Rust commands with hash-based conflict detection in `src-tauri/src/commands/document.rs` (FR-005)
 - [ ] T043 [US2] Implement external-change detection (`fs_watch`) and the save-conflict prompt in `src-tauri/src/fs_watch.rs` and `src/components/dialogs/ConflictDialog.tsx` (Edge Case)
-- [ ] T044 [US2] Isolate and make reversible any non-portable constructs during editing in `src/markdown/tiptap-bridge.ts` (Principle II)
+- [X] T044 [US2] Isolate and make reversible any non-portable constructs during editing in `src/markdown/tiptap-bridge.ts` (Principle II)
 
 **Checkpoint**: User Stories 1 AND 2 both work independently
 
@@ -148,10 +148,10 @@ preserving user documents.
 
 ### Implementation for User Story 3
 
-- [ ] T048 [US3] Configure the MSI/NSIS bundle, Start menu and desktop entries in `src-tauri/tauri.conf.json` (FR-007)
+- [X] T048 [US3] Configure the MSI/NSIS bundle, Start menu and desktop entries in `src-tauri/tauri.conf.json` (FR-007)
 - [ ] T049 [US3] Configure code-signing (certificate via CI secrets) for installer artifacts in `src-tauri/tauri.conf.json` and `.github/workflows/release.yml` (FR-007, Principle V)
-- [ ] T050 [US3] Configure `tauri-plugin-updater` with a signed, integrity-verified update channel in `src-tauri/tauri.conf.json` (FR-008)
-- [ ] T051 [US3] Implement `updater_check` and `updater_install` Rust commands that fail closed on signature mismatch in `src-tauri/src/commands/update.rs` (FR-008)
+- [X] T050 [US3] Configure `tauri-plugin-updater` with a signed, integrity-verified update channel in `src-tauri/tauri.conf.json` (FR-008)
+- [X] T051 [US3] Implement `updater_check` and `updater_install` Rust commands that fail closed on signature mismatch in `src-tauri/src/commands/update.rs` (FR-008)
 - [ ] T052 [US3] Ensure clean uninstall that preserves user documents in `src-tauri/tauri.conf.json` bundle config (Acceptance Scenario US3-4)
 - [ ] T053 [US3] Configure build targets for Windows 10 x64 (22H2+) and Windows 11 x64/ARM64 in `src-tauri/tauri.conf.json` and CI matrix (FR-007)
 
@@ -177,12 +177,12 @@ structure/formatting fidelity in the destination, with dropped elements reported
 
 ### Implementation for User Story 4
 
-- [ ] T058 [US4] Define the `Exporter` interface and `capabilities()` (supported/unsupported elements) in `src/export/exporter.ts` per contracts/export-targets.md
-- [ ] T059 [US4] Implement the offline `wordExporter` (`docx` lib) and the `export_docx` Rust write in `src/export/docx.ts` and `src-tauri/src/commands/export.rs` (FR-009)
-- [ ] T060 [US4] Implement MSAL sign-in/consent with least-privilege Graph scopes in `src/export/graph/auth.ts` (FR-010, FR-011)
-- [ ] T061 [US4] Implement `grantConsent`/`revokeConsent` lifecycle clearing the MSAL token cache in `src/privacy/consent.ts` (FR-011, SC-008)
-- [ ] T062 [US4] Implement the `oneNoteExporter` via Microsoft Graph (`Notes.Create`) in `src/export/graph/onenote.ts` (FR-010)
-- [ ] T063 [US4] Implement the `loopExporter` via Graph with transparent degradation + `droppedElements` reporting in `src/export/graph/loop.ts` (FR-010)
+- [X] T058 [US4] Define the `Exporter` interface and `capabilities()` (supported/unsupported elements) in `src/export/exporter.ts` per contracts/export-targets.md
+- [X] T059 [US4] Implement the offline `wordExporter` (`docx` lib) and the `export_docx` Rust write in `src/export/docx.ts` and `src-tauri/src/commands/export.rs` (FR-009)
+- [X] T060 [US4] Implement MSAL sign-in/consent with least-privilege Graph scopes in `src/export/graph/auth.ts` (FR-010, FR-011)
+- [X] T061 [US4] Implement `grantConsent`/`revokeConsent` lifecycle clearing the MSAL token cache in `src/privacy/consent.ts` (FR-011, SC-008)
+- [X] T062 [US4] Implement the `oneNoteExporter` via Microsoft Graph (`Notes.Create`) in `src/export/graph/onenote.ts` (FR-010)
+- [X] T063 [US4] Implement the `loopExporter` via Graph with transparent degradation + `droppedElements` reporting in `src/export/graph/loop.ts` (FR-010)
 - [ ] T064 [US4] Build the export dialog reporting `droppedElements` and prompting for consent in `src/components/dialogs/ExportDialog.tsx` (FR-010)
 - [ ] T065 [US4] Add accessibility (keyboard, screen-reader) to the export and consent dialogs in `src/components/dialogs/ExportDialog.tsx` (FR-013)
 
@@ -196,19 +196,19 @@ structure/formatting fidelity in the destination, with dropped elements reported
 privacy/consent, opt-in telemetry, security/supply-chain, accessibility, and
 compliance hand-off
 
-- [ ] T066 [P] Implement the consent state machine governing remote content and cloud export in `src/privacy/consent.ts` (Principle III)
-- [ ] T067 [P] Implement opt-in, anonymized, instantly-disableable telemetry with clear disclosure in `src/privacy/telemetry.ts` (FR-014, Principle III)
-- [ ] T068 [P] Implement data-subject rights `exportPersonalData()` (excludes document content) and `deletePersonalData()` (clears settings + token cache) in `src/privacy/data-rights.ts` (FR-012)
+- [X] T066 [P] Implement the consent state machine governing remote content and cloud export in `src/privacy/consent.ts` (Principle III)
+- [X] T067 [P] Implement opt-in, anonymized, instantly-disableable telemetry with clear disclosure in `src/privacy/telemetry.ts` (FR-014, Principle III)
+- [X] T068 [P] Implement data-subject rights `exportPersonalData()` (excludes document content) and `deletePersonalData()` (clears settings + token cache) in `src/privacy/data-rights.ts` (FR-012)
 - [ ] T069 [P] E2E: first-run profile is fully local (telemetry off, remote content off, no consents) in `tests/e2e/first-run-default-local.spec.ts` (SC-008, Invariant)
 - [ ] T070 [P] E2E: `telemetryEnabled=false` ⇒ zero telemetry requests in `tests/e2e/telemetry-optin.spec.ts` (FR-014)
-- [ ] T071 [P] Generate the CycloneDX SBOM for Rust + npm via an `npm run sbom` script in `package.json` and `scripts/sbom.mjs` (FR-015, Principle V)
-- [ ] T072 [P] Add dependency vulnerability scanning to CI and document the coordinated vulnerability disclosure + patch-window process in `SECURITY.md` (FR-015, CRA)
+- [X] T071 [P] Generate the CycloneDX SBOM for Rust + npm via an `npm run sbom` script in `package.json` and `scripts/sbom.mjs` (FR-015, Principle V)
+- [X] T072 [P] Add dependency vulnerability scanning to CI and document the coordinated vulnerability disclosure + patch-window process in `SECURITY.md` (FR-015, CRA)
 - [ ] T073 Full WCAG 2.2 AA audit (axe-core automated + keyboard-only manual) across all primary flows with results in `tests/a11y/full-audit.spec.ts` (FR-013, SC-007)
-- [ ] T074 [P] Implement themes (`system`/`light`/`dark`/`high-contrast`) respecting OS high-contrast and reduced-motion settings in `src/app/theme.ts` (FR-013)
-- [ ] T075 [P] Add localization scaffolding honoring the `locale` setting in `src/lib/i18n.ts` (FR-013)
+- [X] T074 [P] Implement themes (`system`/`light`/`dark`/`high-contrast`) respecting OS high-contrast and reduced-motion settings in `src/app/theme.ts` (FR-013)
+- [X] T075 [P] Add localization scaffolding honoring the `locale` setting in `src/lib/i18n.ts` (FR-013)
 - [ ] T076 Run the quickstart.md validation walkthrough and confirm every success-criterion mapping (SC-001…SC-009)
 - [ ] T077 [P] Add requirement → artifact traceability notes and prepare the compliance hand-off in `compliance/backlog/` (FR-016, Principle VI)
-- [ ] T078 [P] Update `README.md` and developer docs with build, signing, SBOM, and privacy/accessibility notes
+- [X] T078 [P] Update `README.md` and developer docs with build, signing, SBOM, and privacy/accessibility notes
 
 ---
 
