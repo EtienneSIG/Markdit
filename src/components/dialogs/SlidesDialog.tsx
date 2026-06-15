@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { markdownToSlides } from '../../slides/slides';
+import { markdownToSlides, type MarpTheme } from '../../slides/slides';
+import { marpHtmlDocument } from '../../slides/marp';
 import { documentSaveAs, isTauriAvailable } from '../../lib/ipc';
-import { copyRichText } from '../../lib/clipboard';
-import { parse } from '../../markdown/parse';
-import { renderHtml } from '../../markdown/render';
 import { t } from '../../lib/i18n';
 
 export interface SlidesDialogProps {
@@ -13,15 +11,16 @@ export interface SlidesDialogProps {
   onClose: () => void;
 }
 
+const THEMES: readonly MarpTheme[] = ['default', 'gaia', 'uncover'];
+
 /** Derive a slide-deck file name from the source document name. */
-function slidesFileName(fileName: string): string {
-  const base = fileName.replace(/\.md$/i, '') || 'Untitled';
-  return `${base}.slides.md`;
+function deckBaseName(fileName: string): string {
+  return fileName.replace(/\.md$/i, '') || 'Untitled';
 }
 
-/** Trigger a client-side download of the slide Markdown in the browser build. */
-function downloadMarkdown(content: string, fileName: string): void {
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+/** Trigger a client-side download in the browser build. */
+function downloadFile(content: string, fileName: string, mime: string): void {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -33,9 +32,10 @@ function downloadMarkdown(content: string, fileName: string): void {
 }
 
 /**
- * Accessible dialog that turns the current document into a slide deck expressed
- * as standard Markdown (slides separated by `---`). The user can preview, copy,
- * or save the result; nothing leaves the device (Principle III).
+ * Accessible dialog that turns the current document into a Marp slide deck.
+ * It shows a rendered preview (Marp Core), lets the user pick a theme, and
+ * offers copy, Markdown save/download, and self-contained HTML export. Nothing
+ * leaves the device (Principle III).
  */
 export function SlidesDialog({
   open,
@@ -43,13 +43,19 @@ export function SlidesDialog({
   fileName,
   onClose,
 }: SlidesDialogProps): JSX.Element | null {
+  const [theme, setTheme] = useState<MarpTheme>('default');
   const [copied, setCopied] = useState(false);
   const [savedTo, setSavedTo] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   const { markdown: slides, slideCount } = useMemo(
-    () => markdownToSlides(markdown),
-    [markdown],
+    () => markdownToSlides(markdown, { theme }),
+    [markdown, theme],
+  );
+
+  const previewDoc = useMemo(
+    () => (slideCount > 0 ? marpHtmlDocument(slides, deckBaseName(fileName)) : ''),
+    [slides, slideCount, fileName],
   );
 
   // Move focus into the dialog on open and close on Escape (keyboard a11y).
@@ -67,7 +73,7 @@ export function SlidesDialog({
 
   if (!open) return null;
 
-  const targetName = slidesFileName(fileName);
+  const base = deckBaseName(fileName);
 
   const handleCopy = async () => {
     try {
@@ -78,19 +84,23 @@ export function SlidesDialog({
     }
   };
 
-  const handleCopyFormatted = async () => {
-    const html = renderHtml(parse(slides));
-    const ok = await copyRichText(html, slides);
-    setCopied(ok);
+  const handleSaveMarkdown = async () => {
+    if (isTauriAvailable()) {
+      const res = await documentSaveAs(slides);
+      if (res.ok) setSavedTo(res.value.path);
+    } else {
+      downloadFile(slides, `${base}.slides.md`, 'text/markdown');
+    }
   };
 
-  const handleDownload = () => {
-    downloadMarkdown(slides, targetName);
-  };
-
-  const handleSave = async () => {
-    const res = await documentSaveAs(slides);
-    if (res.ok) setSavedTo(res.value.path);
+  const handleExportHtml = async () => {
+    const doc = marpHtmlDocument(slides, base);
+    if (isTauriAvailable()) {
+      const res = await documentSaveAs(doc);
+      if (res.ok) setSavedTo(res.value.path);
+    } else {
+      downloadFile(doc, `${base}.slides.html`, 'text/html');
+    }
   };
 
   return (
@@ -105,15 +115,40 @@ export function SlidesDialog({
         <h2 id="slides-dialog-title">{t('slides.title')}</h2>
         <p className="markdit-slides-count">{t('slides.count').replace('{n}', String(slideCount))}</p>
 
-        <label htmlFor="slides-output">{t('slides.preview')}</label>
-        <textarea
-          id="slides-output"
-          className="markdit-source markdit-slides-output"
-          value={slides}
-          readOnly
-          spellCheck={false}
-          aria-label={t('slides.preview')}
+        <div className="markdit-slides-toolbar">
+          <label htmlFor="slides-theme">{t('slides.theme')}</label>
+          <select
+            id="slides-theme"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value as MarpTheme)}
+          >
+            {THEMES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <label htmlFor="slides-preview">{t('slides.preview')}</label>
+        <iframe
+          id="slides-preview"
+          className="markdit-slides-preview"
+          title={t('slides.preview')}
+          srcDoc={previewDoc}
+          sandbox=""
         />
+
+        <details className="markdit-slides-source-details">
+          <summary>{t('slides.source')}</summary>
+          <textarea
+            className="markdit-source markdit-slides-output"
+            value={slides}
+            readOnly
+            spellCheck={false}
+            aria-label={t('slides.source')}
+          />
+        </details>
 
         {copied && (
           <p className="markdit-slides-status" role="status">
@@ -128,23 +163,22 @@ export function SlidesDialog({
 
         <div className="markdit-modal-actions">
           <button ref={closeRef} type="button" onClick={onClose}>
-            {t('export.close')}
+            {t('slides.close')}
           </button>
           <button type="button" onClick={handleCopy} disabled={slideCount === 0}>
             {t('slides.copy')}
           </button>
-          <button type="button" onClick={handleCopyFormatted} disabled={slideCount === 0}>
-            {t('slides.copyFormatted')}
+          <button type="button" onClick={handleSaveMarkdown} disabled={slideCount === 0}>
+            {isTauriAvailable() ? t('slides.save') : t('slides.download')}
           </button>
-          {isTauriAvailable() ? (
-            <button type="button" onClick={handleSave} disabled={slideCount === 0}>
-              {t('slides.save')}
-            </button>
-          ) : (
-            <button type="button" onClick={handleDownload} disabled={slideCount === 0}>
-              {t('slides.download')}
-            </button>
-          )}
+          <button
+            type="button"
+            className="is-primary"
+            onClick={handleExportHtml}
+            disabled={slideCount === 0}
+          >
+            {t('slides.exportHtml')}
+          </button>
         </div>
       </div>
     </div>

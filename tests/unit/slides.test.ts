@@ -1,15 +1,34 @@
 import { describe, it, expect } from 'vitest';
 import { markdownToSlides } from '../../src/slides/slides';
 
-describe('markdownToSlides (US5 — generate a Markdown slide deck)', () => {
+describe('markdownToSlides (US5 — generate a Marp slide deck)', () => {
   it('returns an empty deck for empty input', () => {
     const { markdown, slideCount } = markdownToSlides('');
     expect(slideCount).toBe(0);
     expect(markdown).toBe('');
   });
 
+  it('prepends a Marp front-matter header by default', () => {
+    const { markdown } = markdownToSlides('# Title\n');
+    expect(markdown.startsWith('---\nmarp: true\n')).toBe(true);
+    expect(markdown).toContain('theme: default');
+    expect(markdown).toContain('paginate: true');
+  });
+
+  it('honors theme and paginate options in the front-matter', () => {
+    const { markdown } = markdownToSlides('# Title\n', { theme: 'gaia', paginate: false });
+    expect(markdown).toContain('theme: gaia');
+    expect(markdown).toContain('paginate: false');
+  });
+
+  it('omits the front-matter when marp is disabled', () => {
+    const { markdown } = markdownToSlides('# Title\n', { marp: false });
+    expect(markdown.startsWith('---')).toBe(false);
+    expect(markdown).toContain('# Title');
+  });
+
   it('keeps a heading-less document as a single slide', () => {
-    const { markdown, slideCount } = markdownToSlides('Just a paragraph.\n');
+    const { markdown, slideCount } = markdownToSlides('Just a paragraph.\n', { marp: false });
     expect(slideCount).toBe(1);
     expect(markdown).not.toContain('\n---\n');
     expect(markdown).toContain('Just a paragraph.');
@@ -45,9 +64,9 @@ describe('markdownToSlides (US5 — generate a Markdown slide deck)', () => {
     expect(slideCount).toBe(3);
   });
 
-  it('produces standard Markdown with no proprietary markers', () => {
+  it('produces standard Markdown with no proprietary inline markers', () => {
     const md = ['# A', '', '- item', '', '# B', '', '**bold**'].join('\n');
-    const { markdown } = markdownToSlides(md);
+    const { markdown } = markdownToSlides(md, { marp: false });
     expect(markdown).toContain('- item');
     expect(markdown).toContain('**bold**');
   });

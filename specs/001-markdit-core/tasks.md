@@ -239,9 +239,32 @@ target, and confirm headings, lists, tables, and emphasis are preserved.
 ### Implementation for User Story 6
 
 - [X] T084 [US6] Implement `copyRichText()` + `copyMarkdownAsRichText()` (HTML via `renderHtml(parse())`, dual-format `ClipboardItem`, plain-text fallback) in `src/lib/clipboard.ts` (FR-018, SC-011)
-- [X] T085 [US6] Wire the "Copy" topbar button with status feedback in `src/app/App.tsx`, add a "Copy formatted" action to the Slides dialog, and add localized strings in `src/lib/i18n.ts` (FR-018, FR-013)
+- [X] T085 [US6] Wire the "Copy" topbar button with status feedback in `src/app/App.tsx` and add localized strings in `src/lib/i18n.ts` (FR-018, FR-013)
 
 **Checkpoint**: Interoperability delivered on-device via clipboard, no export
+
+---
+
+## Phase 6d: Marp slide rendering (extends User Story 5)
+
+**Goal**: Make the slide deck a real Marp deck (https://marp.app/): emit a
+`marp: true` front-matter header with a selectable theme + pagination, render a
+live preview via Marp Core, and export a self-contained HTML deck — all
+on-device.
+
+**Independent Test**: Generate slides, switch theme, and confirm the preview
+re-renders with Marp styling; export HTML opens as a standalone deck.
+
+### Tests for Marp rendering ⚠️
+
+- [X] T086 [P] [US5] Unit tests for Marp front-matter emission (`marp: true`, theme, paginate, `marp:false` opt-out) and `renderMarp`/`marpHtmlDocument` (sections, CSS, theme, escaped title) in `tests/unit/slides.test.ts` + `tests/unit/marp.test.ts` (FR-017, SC-010)
+
+### Implementation for Marp rendering
+
+- [X] T087 [US5] Emit a Marp front-matter header (theme/paginate options) in `src/slides/slides.ts` and add `renderMarp()` + `marpHtmlDocument()` using `@marp-team/marp-core` in `src/slides/marp.ts` (FR-017, SC-010)
+- [X] T088 [US5] Add the Marp preview iframe, theme selector, and HTML export to `src/components/dialogs/SlidesDialog.tsx`, with localized strings in `src/lib/i18n.ts` and styles in `src/styles.css` (FR-017, FR-013)
+
+**Checkpoint**: Slides are a previewable, theme-able, HTML-exportable Marp deck
 
 ---
 

@@ -19,6 +19,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@marp-team/marp-core": "^4.3.0",
     "@tiptap/pm": "^2.11.5",
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",

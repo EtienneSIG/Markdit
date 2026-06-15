@@ -1,11 +1,14 @@
 /**
- * Slide generation (US5) — turn the original Markdown into a slide deck that is
- * itself standard Markdown. Slides are separated by a `---` thematic break, the
- * de-facto convention understood by Marp, reveal.js and remark.js.
+ * Slide generation (US5) — turn the original Markdown into a Marp slide deck.
+ * The output is itself standard Markdown enriched with a Marp front-matter
+ * header (https://marp.app/): `marp: true` enables Marp tooling, slides are
+ * separated by a `---` thematic break, and the deck still renders cleanly in any
+ * general Markdown editor.
  *
  * The Markdown engine stays the single source of truth: we only re-group the
- * existing mdast top-level nodes and serialize them back with `serialize()`.
- * No proprietary markers are introduced (Principle I/II).
+ * existing mdast top-level nodes and serialize them back with `serialize()`,
+ * then prepend the Marp directives. No proprietary inline markers are
+ * introduced (Principle I/II).
  */
 import type { Heading, Root, RootContent } from 'mdast';
 import { parse } from '../markdown/parse';
@@ -18,10 +21,22 @@ export interface SlidesOptions {
    * natural section boundaries become slide boundaries.
    */
   slideLevel?: number;
+  /**
+   * Prepend a Marp front-matter header (`marp: true` + theme + pagination).
+   * Default `true`. Set to `false` to emit a plain `---`-separated deck.
+   */
+  marp?: boolean;
+  /** Marp theme name (`default`, `gaia`, `uncover`). Default `default`. */
+  theme?: MarpTheme;
+  /** Show slide page numbers (Marp `paginate`). Default `true`. */
+  paginate?: boolean;
 }
 
+/** Built-in Marp Core themes. */
+export type MarpTheme = 'default' | 'gaia' | 'uncover';
+
 export interface SlidesResult {
-  /** Standard Markdown with slides separated by `---`. */
+  /** Marp-flavored Markdown with slides separated by `---`. */
   markdown: string;
   /** Number of generated slides. */
   slideCount: number;
@@ -29,6 +44,11 @@ export interface SlidesResult {
 
 /** Separator inserted between slides (blank lines keep the break unambiguous). */
 const SLIDE_SEPARATOR = '\n\n---\n\n';
+
+/** Build the Marp YAML front-matter header. */
+function marpFrontMatter(theme: MarpTheme, paginate: boolean): string {
+  return ['---', 'marp: true', `theme: ${theme}`, `paginate: ${paginate}`, '---', '', ''].join('\n');
+}
 
 /** Count how many slides a given slide level would produce. */
 function countSlidesAtLevel(children: readonly RootContent[], level: number): number {
@@ -68,11 +88,13 @@ function autoSlideLevel(children: readonly RootContent[]): number {
 }
 
 /**
- * Convert Markdown into a slide deck expressed as Markdown.
+ * Convert Markdown into a Marp slide deck expressed as Markdown.
  *
  * Content before the first qualifying heading becomes the title slide; each
  * subsequent heading at (or above) the chosen level starts a new slide. Input
  * with no headings yields a single slide. Empty input yields an empty deck.
+ * By default a Marp front-matter header is prepended so the result is ready for
+ * Marp (VS Code extension, Marp CLI, or marp.app) while staying valid Markdown.
  */
 export function markdownToSlides(markdown: string, opts: SlidesOptions = {}): SlidesResult {
   const tree = parse(markdown);
@@ -102,8 +124,14 @@ export function markdownToSlides(markdown: string, opts: SlidesOptions = {}): Sl
     return serialize(slideTree).trimEnd();
   });
 
+  const body = `${rendered.join(SLIDE_SEPARATOR)}\n`;
+  const useMarp = opts.marp ?? true;
+  const header = useMarp
+    ? marpFrontMatter(opts.theme ?? 'default', opts.paginate ?? true)
+    : '';
+
   return {
-    markdown: `${rendered.join(SLIDE_SEPARATOR)}\n`,
+    markdown: `${header}${body}`,
     slideCount: rendered.length,
   };
 }

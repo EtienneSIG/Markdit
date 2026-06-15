@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { isTauriAvailable, documentOpen } from '../../lib/ipc';
+import { loadLastFolder, saveLastFolder, clearLastFolder } from '../../lib/folder-handle';
 import { t } from '../../lib/i18n';
 
 /** A node in the Markdown file tree shown in the sidebar. */
@@ -115,23 +116,82 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
   const [tree, setTree] = useState<FileNode[]>([]);
   const [rootName, setRootName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** A remembered folder awaiting a user gesture to re-grant read permission. */
+  const [pendingFolder, setPendingFolder] = useState<FileSystemDirectoryHandle | null>(null);
 
   const canPickDirectory = typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+
+  /** Read a directory handle into the tree, updating the sidebar state. */
+  const loadDirectory = useCallback(async (dir: FileSystemDirectoryHandle) => {
+    const nodes = await readDirectory(dir);
+    setRootName(dir.name);
+    setTree(nodes);
+    setPendingFolder(null);
+  }, []);
 
   const openFolder = useCallback(async () => {
     setError(null);
     try {
       const dir = await window.showDirectoryPicker!({ mode: 'read' });
-      const nodes = await readDirectory(dir);
-      setRootName(dir.name);
-      setTree(nodes);
+      await loadDirectory(dir);
+      await saveLastFolder(dir);
     } catch (err) {
       // User cancelled the picker — not an error worth surfacing.
       if ((err as DOMException)?.name !== 'AbortError') {
         setError(String(err));
       }
     }
-  }, []);
+  }, [loadDirectory]);
+
+  /** Re-grant access to a remembered folder (requires a user gesture). */
+  const reopenFolder = useCallback(
+    async (dir: FileSystemDirectoryHandle) => {
+      setError(null);
+      try {
+        const granted =
+          (await dir.requestPermission?.({ mode: 'read' })) ?? 'granted';
+        if (granted === 'granted') {
+          await loadDirectory(dir);
+          await saveLastFolder(dir);
+        } else {
+          setPendingFolder(null);
+          await clearLastFolder();
+        }
+      } catch (err) {
+        setError(String(err));
+      }
+    },
+    [loadDirectory],
+  );
+
+  // Restore the last opened folder on mount. If the browser still grants read
+  // permission we load it immediately; if it needs a fresh gesture we surface a
+  // one-click "reopen" prompt; otherwise we forget it.
+  useEffect(() => {
+    if (!canPickDirectory) return;
+    let cancelled = false;
+    void (async () => {
+      const dir = await loadLastFolder();
+      if (!dir || cancelled) return;
+      const state = (await dir.queryPermission?.({ mode: 'read' })) ?? 'prompt';
+      if (cancelled) return;
+      if (state === 'granted') {
+        try {
+          await loadDirectory(dir);
+        } catch {
+          if (!cancelled) setPendingFolder(dir);
+        }
+      } else if (state === 'prompt') {
+        setPendingFolder(dir);
+      } else {
+        await clearLastFolder();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [canPickDirectory, loadDirectory]);
+
 
   const openSingleFile = useCallback(async () => {
     const res = await documentOpen();
@@ -172,6 +232,16 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
       </div>
 
       {rootName && <div className="markdit-sidebar-root">{rootName}</div>}
+
+      {pendingFolder && tree.length === 0 && (
+        <button
+          type="button"
+          className="markdit-sidebar-reopen"
+          onClick={() => reopenFolder(pendingFolder)}
+        >
+          {t('sidebar.reopen').replace('{name}', pendingFolder.name)}
+        </button>
+      )}
 
       {tree.length > 0 ? (
         <div className="markdit-sidebar-body" role="tree" aria-label={t('sidebar.files')}>

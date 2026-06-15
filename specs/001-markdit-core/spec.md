@@ -258,10 +258,12 @@ interoperability value without any export.
   handling / update process aligned with the Cyber Resilience Act.
 - **FR-016**: Compliance agents MUST be able to audit specs, plan, tasks, and
   implementation a posteriori and emit a tracked compliance backlog.
-- **FR-017**: System MUST generate a slide deck from the active document as
-  standard Markdown (slides separated by a `---` break), reusing the Markdown
-  engine, introducing no proprietary markers, and keeping the result on-device
-  (preview, copy, download, or local save).
+- **FR-017**: System MUST generate a slide deck from the active document as Marp
+  Markdown (https://marp.app/): a `marp: true` YAML front-matter header plus a
+  selectable theme and pagination, with slides separated by a `---` break,
+  reusing the Markdown engine and keeping the result on-device. The app MUST
+  render a live preview of the deck and export it as self-contained HTML, in
+  addition to copy / Markdown save (all on-device).
 - **FR-018**: System MUST let the user copy the active document to the system
   clipboard as both rich HTML and plain Markdown, on-device, so it can be pasted
   into external apps (e.g. OneNote, Word, Loop) without any export, sign-in, or
@@ -305,8 +307,9 @@ interoperability value without any export.
   a specific regulation/clause and a severity, and zero `CRITICAL` items remain
   open at release.
 - **SC-010**: 100% of documents converted to slides split on the shallowest
-  heading depth into `---`-separated slides and re-render as valid standard
-  Markdown with no content loss.
+  heading depth into a Marp deck (`marp: true` front-matter, `---`-separated
+  slides) that renders via Marp Core into a previewable, HTML-exportable deck
+  with no content loss.
 - **SC-011**: Copying the active document places both rich HTML and plain
   Markdown on the system clipboard on-device, with no network request, so a
   paste into OneNote/Word/Loop preserves headings, lists, tables, and emphasis.
