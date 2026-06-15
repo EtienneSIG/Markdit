@@ -108,7 +108,14 @@ cleanly; delivers a distributable product.
 
 ---
 
-### User Story 4 - Export to other formats (Word, OneNote, Loop, …) (Priority: P3)
+### User Story 4 - Export to other formats (Word, OneNote, Loop, …) (Priority: P3) — REMOVED / DESCOPED
+
+> **Status (descoped):** This story was implemented and then removed. Cloud and
+> Word `.docx` export proved too complex for the target users. The lighter
+> **copy-to-clipboard** capability (rich HTML + Markdown, User Story 6) replaces
+> it: users paste directly into OneNote, Word or Loop. The slide generator
+> (User Story 5) covers presentation reach. The original scenarios below are kept
+> for historical context only and are no longer part of the product.
 
 A user exports the current document to an external format — Microsoft Word
 (`.docx`), OneNote, and Microsoft Loop — preserving structure and formatting as
@@ -132,6 +139,60 @@ application; delivers interoperability value.
 3. **Given** an export that requires authentication to a cloud service, **When**
    the user initiates it, **Then** consent is explicit and credentials/content
    are handled per the privacy principles.
+
+---
+
+### User Story 5 - Generate a slide deck from the document (Priority: P3)
+
+A user turns the current document into a slide deck with a single action. The
+output is itself standard Markdown, with slides separated by a `---` break (the
+convention understood by Marp, reveal.js and remark.js), so it can be previewed,
+copied, or saved without any new proprietary format.
+
+**Why this priority**: Slide generation reuses the existing Markdown engine to
+extend reach into presentation workflows; it depends on reliable parsing but is
+independent of editing and cloud export.
+
+**Independent Test**: Open a document with several headings, generate slides, and
+confirm each top-level section becomes its own slide separated by `---`, with the
+result re-rendering as valid Markdown; delivers value as a deck authoring tool.
+
+**Acceptance Scenarios**:
+
+1. **Given** a document with multiple top-level headings, **When** the user
+   clicks "Slides", **Then** a Markdown deck is produced where each section
+   becomes a slide separated by a `---` break.
+2. **Given** a document with no headings, **When** the user generates slides,
+   **Then** the whole document is presented as a single slide.
+3. **Given** generated slides, **When** the user copies, downloads, or saves
+   them, **Then** the output stays on the device and is valid standard Markdown.
+
+---
+
+### User Story 6 - Copy the document to the clipboard (Priority: P2)
+
+A user copies the active document to the system clipboard with one action and
+pastes it into another application — OneNote, Word, or Loop — keeping headings,
+lists, tables, and emphasis. This replaces the removed export feature with a
+lighter, on-device interaction.
+
+**Why this priority**: Copy-to-clipboard is the simple, privacy-preserving path
+to interoperability that most users actually need; it reuses the rendering
+engine and requires no sign-in, no network, and no proprietary export pipeline.
+
+**Independent Test**: Copy a document with mixed elements, paste into a rich-text
+target, and confirm the structure and emphasis are preserved; delivers
+interoperability value without any export.
+
+**Acceptance Scenarios**:
+
+1. **Given** a document with headings, lists, tables, and emphasis, **When** the
+   user clicks "Copy", **Then** both rich HTML and plain Markdown are placed on
+   the clipboard and a paste into a rich-text app preserves the structure.
+2. **Given** the copy action, **When** it runs, **Then** no network request is
+   made and nothing leaves the device beyond the system clipboard.
+3. **Given** a clipboard API that rejects rich content, **When** the user copies,
+   **Then** the app falls back to plain Markdown and reports the outcome.
 
 ---
 
@@ -177,9 +238,13 @@ application; delivers interoperability value.
   uninstall path, supporting Windows 10 (x64, 22H2+) and Windows 11 (x64/ARM64).
 - **FR-008**: System MUST support application updates over an authenticated,
   integrity-verified channel.
-- **FR-009**: System MUST export the active document to Microsoft Word (`.docx`).
-- **FR-010**: System MUST export the active document to OneNote and Microsoft
-  Loop, informing the user of any non-representable elements.
+- **FR-009**: ~~System MUST export the active document to Microsoft Word
+  (`.docx`).~~ **REMOVED / DESCOPED** — Word export was implemented and then
+  removed as too complex for target users; superseded by copy-to-clipboard
+  (FR-018) and slide generation (FR-017).
+- **FR-010**: ~~System MUST export the active document to OneNote and Microsoft
+  Loop, informing the user of any non-representable elements.~~ **REMOVED /
+  DESCOPED** — cloud export removed; users paste via copy-to-clipboard (FR-018).
 - **FR-011**: System MUST process and store documents locally by default; no
   document content leaves the device without explicit, informed consent.
 - **FR-012**: System MUST expose privacy controls (consent management, export of
@@ -193,6 +258,14 @@ application; delivers interoperability value.
   handling / update process aligned with the Cyber Resilience Act.
 - **FR-016**: Compliance agents MUST be able to audit specs, plan, tasks, and
   implementation a posteriori and emit a tracked compliance backlog.
+- **FR-017**: System MUST generate a slide deck from the active document as
+  standard Markdown (slides separated by a `---` break), reusing the Markdown
+  engine, introducing no proprietary markers, and keeping the result on-device
+  (preview, copy, download, or local save).
+- **FR-018**: System MUST let the user copy the active document to the system
+  clipboard as both rich HTML and plain Markdown, on-device, so it can be pasted
+  into external apps (e.g. OneNote, Word, Loop) without any export, sign-in, or
+  network access.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -221,8 +294,9 @@ application; delivers interoperability value.
   only the toolbar in under 30 seconds without typing Markdown.
 - **SC-005**: The Windows installer is validly code-signed and installs,
   launches, and uninstalls cleanly on all supported Windows versions.
-- **SC-006**: Export to Word/OneNote/Loop preserves document structure for at
-  least 95% of supported elements, with the remainder explicitly reported.
+- **SC-006**: ~~Export to Word/OneNote/Loop preserves document structure for at
+  least 95% of supported elements, with the remainder explicitly reported.~~
+  **REMOVED / DESCOPED** — replaced by SC-011 (copy-to-clipboard).
 - **SC-007**: All primary flows pass WCAG 2.2 AA automated and keyboard-only
   manual checks with zero blocking issues.
 - **SC-008**: Zero document content leaves the device without recorded explicit
@@ -230,6 +304,12 @@ application; delivers interoperability value.
 - **SC-009**: Each compliance audit produces a backlog where every finding cites
   a specific regulation/clause and a severity, and zero `CRITICAL` items remain
   open at release.
+- **SC-010**: 100% of documents converted to slides split on the shallowest
+  heading depth into `---`-separated slides and re-render as valid standard
+  Markdown with no content loss.
+- **SC-011**: Copying the active document places both rich HTML and plain
+  Markdown on the system clipboard on-device, with no network request, so a
+  paste into OneNote/Word/Loop preserves headings, lists, tables, and emphasis.
 
 ## Assumptions
 

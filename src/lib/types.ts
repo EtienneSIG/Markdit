@@ -75,41 +75,6 @@ export type MarkdownElement =
   | 'image'
   | 'thematicBreak';
 
-export type ExportTargetId = 'word' | 'onenote' | 'loop';
-
-export interface ExportTarget {
-  id: ExportTargetId;
-  displayName: string;
-  mode: 'offline' | 'cloud';
-  requiresAuth: boolean;
-  /** Least-privilege Graph scopes (cloud only). */
-  requiredScopes: string[];
-  supportedElements: MarkdownElement[];
-  unsupportedElements: MarkdownElement[];
-}
-
-export interface ExportResult {
-  target: ExportTargetId;
-  status: 'success' | 'partial' | 'cancelled' | 'failed';
-  /** File path (Word) or service URL (cloud). */
-  outputLocation: string | null;
-  /** Non-representable elements omitted. */
-  droppedElements: MarkdownElement[];
-  message: string;
-}
-
-export interface ConsentRecord {
-  granted: boolean;
-  /** ISO 8601 — audit trail for SC-008. */
-  grantedAt: string | null;
-  scopes: string[];
-}
-
-export interface AccountInfo {
-  username: string;
-  homeAccountId: string;
-}
-
 export type ThemeId = 'system' | 'light' | 'dark' | 'high-contrast';
 
 export interface PrivacySettings {
@@ -117,10 +82,6 @@ export interface PrivacySettings {
   telemetryEnabled: boolean;
   /** Gates fetching remote images/links (FR-003). Default false. */
   allowRemoteContent: boolean;
-  /** Per-target cloud export consent. Default empty. */
-  cloudExportConsents: Partial<Record<'onenote' | 'loop', ConsentRecord>>;
-  /** MSAL account; cleared on sign-out. Default null. */
-  signedInAccount: AccountInfo | null;
   locale: string;
   theme: ThemeId;
 }
@@ -143,8 +104,6 @@ export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: CommandE
 export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   telemetryEnabled: false,
   allowRemoteContent: false,
-  cloudExportConsents: {},
-  signedInAccount: null,
   locale: 'en',
   theme: 'system',
 };

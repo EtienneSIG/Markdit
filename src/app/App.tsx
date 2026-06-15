@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Reader } from '../components/reader/Reader';
 import { RenderNotice } from '../components/reader/RenderNotice';
 import { Editor } from '../components/editor/Editor';
-import { ExportDialog } from '../components/dialogs/ExportDialog';
+import { SlidesDialog } from '../components/dialogs/SlidesDialog';
 import { ConflictDialog } from '../components/dialogs/ConflictDialog';
 import { FileExplorer, type SelectedFile } from '../components/sidebar/FileExplorer';
 import {
@@ -16,6 +16,7 @@ import {
   settingsSet,
 } from '../lib/ipc';
 import { DEFAULT_PRIVACY_SETTINGS, type PrivacySettings } from '../lib/types';
+import { copyMarkdownAsRichText } from '../lib/clipboard';
 import { applyTheme } from './theme';
 import { setLocale, t } from '../lib/i18n';
 import { configureTelemetry } from '../privacy/telemetry';
@@ -29,9 +30,10 @@ export function App(): JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>('read');
   const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
-  const [exportOpen, setExportOpen] = useState(false);
+  const [slidesOpen, setSlidesOpen] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -91,6 +93,12 @@ export function App(): JSX.Element {
     setFilePath(file.path);
     setView('read');
   }, []);
+
+  const handleCopy = useCallback(async () => {
+    const ok = await copyMarkdownAsRichText(markdown);
+    setCopyStatus(ok ? 'copied' : 'failed');
+    window.setTimeout(() => setCopyStatus('idle'), 2500);
+  }, [markdown]);
 
   const enableRemote = useCallback(async () => {
     const res = await settingsSet({ allowRemoteContent: true });
@@ -191,7 +199,18 @@ export function App(): JSX.Element {
               </button>
             </>
           )}
-          <button type="button" className="is-primary" onClick={() => setExportOpen(true)}>
+          <button
+            type="button"
+            onClick={handleCopy}
+            title={t('action.copy')}
+            aria-label={
+              copyStatus === 'copied'
+                ? t('action.copied')
+                : copyStatus === 'failed'
+                  ? t('action.copyFailed')
+                  : t('action.copy')
+            }
+          >
             <svg
               className="markdit-icon"
               viewBox="0 0 24 24"
@@ -203,11 +222,34 @@ export function App(): JSX.Element {
               aria-hidden="true"
               focusable="false"
             >
-              <path d="M12 3v12" />
-              <path d="m7 8 5-5 5 5" />
-              <path d="M5 21h14" />
+              {copyStatus === 'copied' ? (
+                <path d="m5 13 4 4L19 7" />
+              ) : (
+                <>
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                </>
+              )}
             </svg>
-            {t('action.export')}
+            {copyStatus === 'copied' ? t('action.copied') : t('action.copy')}
+          </button>
+          <button type="button" className="is-primary" onClick={() => setSlidesOpen(true)}>
+            <svg
+              className="markdit-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <rect x="3" y="4" width="18" height="12" rx="1" />
+              <path d="M12 16v4" />
+              <path d="M8 20h8" />
+            </svg>
+            {t('action.slides')}
           </button>
         </nav>
       </header>
@@ -232,13 +274,11 @@ export function App(): JSX.Element {
         </main>
       </div>
 
-      <ExportDialog
-        open={exportOpen}
+      <SlidesDialog
+        open={slidesOpen}
         markdown={markdown}
         fileName={fileLabel}
-        settings={settings}
-        onSettingsChange={setSettings}
-        onClose={() => setExportOpen(false)}
+        onClose={() => setSlidesOpen(false)}
       />
 
       <ConflictDialog

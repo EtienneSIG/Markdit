@@ -19,12 +19,9 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@azure/msal-browser": "^3.28.1",
-    "@microsoft/microsoft-graph-client": "^3.0.7",
     "@tiptap/pm": "^2.11.5",
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
-    "docx": "^9.1.1",
     "mdast-util-from-markdown": "^2.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -45,6 +42,7 @@
     "@testing-library/react": "^16.2.0",
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
+    "@types/node": "^22.19.21",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@typescript-eslint/eslint-plugin": "^8.24.0",

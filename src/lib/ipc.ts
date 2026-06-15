@@ -108,17 +108,13 @@ export async function onDocumentChanged(
   return listen('document://changed', (e) => handler(e.payload));
 }
 
-// --- Export, settings, updater --------------------------------------------
-
-export const exportDocx = (docxBytes: number[], suggestedName: string) =>
-  invokeCommand<{ outputPath: string }>('export_docx', { docxBytes, suggestedName });
+// --- Settings, updater -----------------------------------------------------
 
 /**
  * Settings persistence. Under the desktop runtime this round-trips through the
  * Rust core; in the web build (no Tauri) it falls back to `localStorage` so the
- * privacy profile — including cloud-export consent — still persists on-device
- * (Principle III: nothing leaves the device). Without this fallback the web
- * build could never record consent, leaving cloud export permanently blocked.
+ * privacy profile still persists on-device (Principle III: nothing leaves the
+ * device).
  */
 const WEB_SETTINGS_KEY = 'markdit.settings';
 

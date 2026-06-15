@@ -159,7 +159,15 @@ preserving user documents.
 
 ---
 
-## Phase 6: User Story 4 - Export to other formats (Word, OneNote, Loop) (Priority: P3)
+## Phase 6: User Story 4 - Export to other formats (Word, OneNote, Loop) (Priority: P3) — REMOVED / DESCOPED
+
+> **Status (descoped):** This phase was implemented and then removed. Word/cloud
+> export proved too complex for target users and was replaced by the lighter
+> copy-to-clipboard feature (Phase 6c) plus slide generation (Phase 6b). The code
+> (`src/export/`, `src/components/dialogs/ExportDialog.tsx`, `src/privacy/consent.ts`,
+> `src-tauri/src/commands/export.rs`, the `export_docx` IPC command, the `docx`,
+> `@azure/msal-browser` and `@microsoft/microsoft-graph-client` deps) and the
+> tests below were deleted. Tasks are kept struck-through for traceability.
 
 **Goal**: Export the active document to Word (`.docx`, offline) and to OneNote and
 Loop (cloud, consented), preserving structure and reporting any non-representable
@@ -170,23 +178,70 @@ structure/formatting fidelity in the destination, with dropped elements reported
 
 ### Tests for User Story 4 (write FIRST, ensure they FAIL) ⚠️
 
-- [X] T054 [P] [US4] E2E: Word export produces a valid `.docx` with no network access in `tests/e2e/export-word.spec.ts` (FR-009, SC-006)
-- [X] T055 [P] [US4] E2E: cloud export with no consent returns `cancelled` and performs zero requests in `tests/e2e/export-consent-gate.spec.ts` (FR-011, SC-008)
-- [X] T056 [P] [US4] Test: consent + mocked Graph returns `success`/`partial` and populates `droppedElements` in `tests/unit/cloud-export.test.ts` (FR-010, SC-006)
-- [X] T057 [P] [US4] E2E: `export_docx` never opens a network socket in `tests/e2e/export-docx-offline.spec.ts` (FR-009)
+- [X] ~~T054 [P] [US4] E2E: Word export produces a valid `.docx` with no network access in `tests/e2e/export-word.spec.ts` (FR-009, SC-006)~~ — REMOVED
+- [X] ~~T055 [P] [US4] E2E: cloud export with no consent returns `cancelled` and performs zero requests in `tests/e2e/export-consent-gate.spec.ts` (FR-011, SC-008)~~ — REMOVED
+- [X] ~~T056 [P] [US4] Test: consent + mocked Graph returns `success`/`partial` and populates `droppedElements` in `tests/unit/cloud-export.test.ts` (FR-010, SC-006)~~ — REMOVED
+- [X] ~~T057 [P] [US4] E2E: `export_docx` never opens a network socket in `tests/e2e/export-docx-offline.spec.ts` (FR-009)~~ — REMOVED
 
 ### Implementation for User Story 4
 
-- [X] T058 [US4] Define the `Exporter` interface and `capabilities()` (supported/unsupported elements) in `src/export/exporter.ts` per contracts/export-targets.md
-- [X] T059 [US4] Implement the offline `wordExporter` (`docx` lib) and the `export_docx` Rust write in `src/export/docx.ts` and `src-tauri/src/commands/export.rs` (FR-009)
-- [X] T060 [US4] Implement MSAL sign-in/consent with least-privilege Graph scopes in `src/export/graph/auth.ts` (FR-010, FR-011)
-- [X] T061 [US4] Implement `grantConsent`/`revokeConsent` lifecycle clearing the MSAL token cache in `src/privacy/consent.ts` (FR-011, SC-008)
-- [X] T062 [US4] Implement the `oneNoteExporter` via Microsoft Graph (`Notes.Create`) in `src/export/graph/onenote.ts` (FR-010)
-- [X] T063 [US4] Implement the `loopExporter` via Graph with transparent degradation + `droppedElements` reporting in `src/export/graph/loop.ts` (FR-010)
-- [X] T064 [US4] Build the export dialog reporting `droppedElements` and prompting for consent in `src/components/dialogs/ExportDialog.tsx` (FR-010)
-- [X] T065 [US4] Add accessibility (keyboard, screen-reader) to the export and consent dialogs in `src/components/dialogs/ExportDialog.tsx` (FR-013)
+- [X] ~~T058 [US4] Define the `Exporter` interface and `capabilities()` (supported/unsupported elements) in `src/export/exporter.ts` per contracts/export-targets.md~~ — REMOVED
+- [X] ~~T059 [US4] Implement the offline `wordExporter` (`docx` lib) and the `export_docx` Rust write in `src/export/docx.ts` and `src-tauri/src/commands/export.rs` (FR-009)~~ — REMOVED
+- [X] ~~T060 [US4] Implement MSAL sign-in/consent with least-privilege Graph scopes in `src/export/graph/auth.ts` (FR-010, FR-011)~~ — REMOVED
+- [X] ~~T061 [US4] Implement `grantConsent`/`revokeConsent` lifecycle clearing the MSAL token cache in `src/privacy/consent.ts` (FR-011, SC-008)~~ — REMOVED
+- [X] ~~T062 [US4] Implement the `oneNoteExporter` via Microsoft Graph (`Notes.Create`) in `src/export/graph/onenote.ts` (FR-010)~~ — REMOVED
+- [X] ~~T063 [US4] Implement the `loopExporter` via Graph with transparent degradation + `droppedElements` reporting in `src/export/graph/loop.ts` (FR-010)~~ — REMOVED
+- [X] ~~T064 [US4] Build the export dialog reporting `droppedElements` and prompting for consent in `src/components/dialogs/ExportDialog.tsx` (FR-010)~~ — REMOVED
+- [X] ~~T065 [US4] Add accessibility (keyboard, screen-reader) to the export and consent dialogs in `src/components/dialogs/ExportDialog.tsx` (FR-013)~~ — REMOVED
 
-**Checkpoint**: All four user stories are independently functional
+**Checkpoint**: ~~All four user stories are independently functional~~ Export
+removed; interoperability now provided by copy-to-clipboard (Phase 6c).
+
+---
+
+## Phase 6b: User Story 5 - Generate a slide deck from the document (Priority: P3)
+
+**Goal**: Turn the active document into a slide deck expressed as standard
+Markdown (slides separated by a `---` break), reusing the Markdown engine, with
+preview/copy/download/local-save and no content leaving the device.
+
+**Independent Test**: Open a document with several top-level headings, generate
+slides, and confirm each section becomes a `---`-separated slide that re-renders
+as valid Markdown.
+
+### Tests for User Story 5 (write FIRST, ensure they FAIL) ⚠️
+
+- [X] T079 [P] [US5] Unit tests for `markdownToSlides`: heading-level splitting, heading-less single slide, title slide, explicit `slideLevel`, standards-only output in `tests/unit/slides.test.ts` (FR-017, SC-010)
+
+### Implementation for User Story 5
+
+- [X] T080 [US5] Implement `markdownToSlides()` reusing `parse()` + `serialize()` (group top-level nodes by shallowest heading depth, join with `---`) in `src/slides/slides.ts` (FR-017, SC-010)
+- [X] T081 [US5] Build the accessible Slides dialog (preview, copy, browser download, Tauri save) in `src/components/dialogs/SlidesDialog.tsx` (FR-013, FR-017)
+- [X] T082 [US5] Wire the "Slides" topbar button + dialog state in `src/app/App.tsx`, add localized strings in `src/lib/i18n.ts`, and styles in `src/styles.css` (FR-017)
+
+**Checkpoint**: All five user stories are independently functional
+
+---
+
+## Phase 6c: User Story 6 - Copy the document to the clipboard (Priority: P2)
+
+**Goal**: Copy the active document to the system clipboard as both rich HTML and
+plain Markdown, on-device with no network, so it can be pasted into OneNote, Word
+or Loop. Replaces the removed export feature (Phase 6).
+
+**Independent Test**: Copy a mixed-element document, paste into a rich-text
+target, and confirm headings, lists, tables, and emphasis are preserved.
+
+### Tests for User Story 6 (write FIRST, ensure they FAIL) ⚠️
+
+- [X] T083 [P] [US6] Unit tests for `copyRichText`/`copyMarkdownAsRichText`: writes `text/html` + `text/plain`, falls back to `writeText`, returns false with no clipboard API, renders MD→HTML in `tests/unit/clipboard.test.ts` (FR-018, SC-011)
+
+### Implementation for User Story 6
+
+- [X] T084 [US6] Implement `copyRichText()` + `copyMarkdownAsRichText()` (HTML via `renderHtml(parse())`, dual-format `ClipboardItem`, plain-text fallback) in `src/lib/clipboard.ts` (FR-018, SC-011)
+- [X] T085 [US6] Wire the "Copy" topbar button with status feedback in `src/app/App.tsx`, add a "Copy formatted" action to the Slides dialog, and add localized strings in `src/lib/i18n.ts` (FR-018, FR-013)
+
+**Checkpoint**: Interoperability delivered on-device via clipboard, no export
 
 ---
 
@@ -232,6 +287,9 @@ compliance hand-off
   US1/US2 content and independently testable on a clean machine.
 - **US4 (P3)**: Depends on Foundational; consumes the engine's mdast output but is
   independently testable per export target.
+- **US5 (P3)**: Depends on Foundational; reuses the engine's `parse()`/`serialize()`
+  to produce a Markdown slide deck and is independently testable (open → generate
+  slides → verify `---`-separated output).
 
 ### Within Each User Story
 

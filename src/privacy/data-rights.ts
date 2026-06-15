@@ -30,8 +30,7 @@ export async function exportPersonalData(): Promise<PersonalDataExport | null> {
 }
 
 /**
- * Delete personal data: reset settings to the default-local profile and clear
- * any signed-in account / consents (the caller also clears the MSAL token cache).
+ * Delete personal data: reset settings to the default-local profile.
  */
 export async function deletePersonalData(): Promise<PrivacySettings | null> {
   const reset = await settingsSet({ ...DEFAULT_PRIVACY_SETTINGS });

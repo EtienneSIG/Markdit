@@ -49,6 +49,5 @@ impl CommandError {
 pub type CommandResult<T> = Result<T, CommandError>;
 
 pub mod document;
-pub mod export;
 pub mod settings;
 pub mod update;

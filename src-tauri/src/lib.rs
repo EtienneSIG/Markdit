@@ -8,7 +8,7 @@ mod fs_watch;
 #[cfg(test)]
 mod tests;
 
-use commands::{document, export, settings, update};
+use commands::{document, settings, update};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -22,7 +22,6 @@ pub fn run() {
             document::document_save,
             document::document_watch,
             document::document_unwatch,
-            export::export_docx,
             settings::settings_get,
             settings::settings_set,
             update::updater_check,

@@ -31,8 +31,6 @@ fn defaults() -> Value {
     serde_json::json!({
         "telemetryEnabled": false,
         "allowRemoteContent": false,
-        "cloudExportConsents": {},
-        "signedInAccount": null,
         "locale": "en",
         "theme": "system"
     })

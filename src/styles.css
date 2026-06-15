@@ -633,15 +633,6 @@ a:focus-visible,
   font: inherit;
 }
 
-.markdit-export-dropped,
-.markdit-export-consent {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.6rem 0.85rem;
-  font-size: 0.9rem;
-}
-
 .markdit-modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -649,8 +640,7 @@ a:focus-visible,
   margin-top: 0.25rem;
 }
 
-.markdit-modal-actions button,
-.markdit-export-consent button {
+.markdit-modal-actions button {
   background: transparent;
   color: var(--fg);
   border: 1px solid var(--border);
@@ -662,8 +652,7 @@ a:focus-visible,
   transition: background 0.12s ease;
 }
 
-.markdit-modal-actions button:hover,
-.markdit-export-consent button:hover {
+.markdit-modal-actions button:hover {
   background: var(--surface-hover);
 }
 
@@ -691,4 +680,28 @@ a:focus-visible,
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1rem;
+}
+
+.markdit-modal-wide {
+  width: min(46rem, 94vw);
+}
+
+.markdit-slides-output {
+  min-height: 18rem;
+  max-height: 50vh;
+  resize: vertical;
+  font-size: 0.85rem;
+  white-space: pre;
+}
+
+.markdit-slides-count {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.markdit-slides-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--accent);
 }
