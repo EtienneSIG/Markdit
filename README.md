@@ -35,6 +35,19 @@ then copy the Markdown, save it, or export a self-contained HTML deck.
 6. **Slides** — generate a Marp deck from the document, preview it, switch the
    theme, and export it as self-contained HTML — all on-device.
 
+## Download
+
+Grab the latest Windows build from the
+[**Releases** page](https://github.com/EtienneSIG/Markdit/releases/latest):
+
+- **`Markdit_<version>_x64-setup.exe`** — recommended installer (per-user, no
+  admin rights, clean updates and uninstall).
+- **`Markdit_<version>_x64_en-US.msi`** — Windows Installer package.
+- **`markdit.exe`** — standalone portable executable (no installation).
+
+Windows 11 already ships the required WebView2 runtime; on Windows 10 the
+installer fetches it automatically if needed.
+
 ## Regulatory compliance
 
 Markdit targets EU and North American markets and is held to GDPR, the European
@@ -107,35 +120,6 @@ To refresh the golden round-trip corpus after an intentional engine change:
 ```powershell
 node scripts/generate-corpus.mjs
 ```
-
-### Build a Windows executable
-
-The desktop build requires the Rust toolchain and the Tauri prerequisites
-(Microsoft C++ Build Tools and the WebView2 runtime, which ships with Windows
-11). To produce the app and its Windows installers:
-
-```powershell
-npm run tauri build
-```
-
-> **OneDrive note:** if the repository lives inside a synced OneDrive folder,
-> Cargo build scripts can fail with "output path is not a writable directory".
-> Redirect Cargo's target directory outside OneDrive before building:
->
-> ```powershell
-> $env:CARGO_TARGET_DIR = "C:\Temp\markdit-target"
-> npm run tauri build
-> ```
-
-The build outputs land under the Cargo target directory (`src-tauri/target/release/`
-by default, or `$env:CARGO_TARGET_DIR\release` when redirected):
-
-- `markdit.exe` — the standalone application executable.
-- `bundle/msi/Markdit_<version>_x64_en-US.msi` — Windows Installer package.
-- `bundle/nsis/Markdit_<version>_x64-setup.exe` — NSIS setup (per-user install).
-
-> Installer code-signing is optional for local builds; see
-> [SECURITY.md](SECURITY.md) for the production signing and update model.
 
 Markdit is **local-first**. On first run telemetry is off, remote content is
 blocked, and no cloud consents exist. Nothing leaves the device without an
