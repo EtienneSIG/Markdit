@@ -1,8 +1,8 @@
 # Markdit
 
-Markdit is a Windows-first **WYSIWYG Markdown editor** that lets you read, edit,
-and export Markdown documents without writing Markdown syntax by hand. The look
-and feel takes cues from Microsoft Loop, with a Word-like formatting ribbon.
+Markdit is a Windows-first **WYSIWYG Markdown editor** that lets you read and
+edit Markdown documents without writing Markdown syntax by hand. The look and
+feel takes cues from Microsoft Loop, with a Word-like formatting ribbon.
 
 ## Screenshots
 
@@ -16,11 +16,9 @@ WYSIWYG editor while the underlying file stays portable, clean Markdown.
 
 ![Markdit in Edit mode with the formatting ribbon](docs/screenshots/edit-view.png)
 
-**Export** — export to Microsoft Word (`.docx`) offline, or to OneNote/Loop with
-explicit consent. Unsupported elements are listed up front before anything is
-written or leaves the device.
-
-![Markdit export dialog](docs/screenshots/export-dialog.png)
+**Slides** — turn the active document into a [Marp](https://marp.app/) deck
+(`marp: true` front-matter, selectable theme, pagination) with a live preview,
+then copy the Markdown, save it, or export a self-contained HTML deck.
 
 ## Capabilities
 
@@ -29,10 +27,13 @@ written or leaves the device.
 2. **Visual editing without Markdown** — Word-like formatting ribbon and styles;
    the underlying file stays clean, portable Markdown.
 3. **Collapsible navigation** — a burger toggle shows/hides the file sidebar so
-   the document can use the full width.
+   the document can use the full width. The last opened folder is remembered and
+   restored on the next launch.
 4. **Installable on Windows** — signed installer with clean updates/uninstall.
-5. **Export** — to Microsoft Word (`.docx`, fully offline) and, with explicit
-   consent, OneNote and Loop via Microsoft Graph.
+5. **Copy** — copy the document as rich text (with a Markdown fallback) to paste
+   into other apps.
+6. **Slides** — generate a Marp deck from the document, preview it, switch the
+   theme, and export it as self-contained HTML — all on-device.
 
 ## Regulatory compliance
 
@@ -73,15 +74,14 @@ truth** and lives entirely in the TypeScript frontend; the Rust core handles onl
 local file I/O, settings persistence, signed updates, and file watching.
 
 - **Rust core** (`src-tauri/`): file open/save with content-hash conflict
-  detection, privacy-first settings store, offline `.docx` write, updater.
+  detection, privacy-first settings store, signed updates, and file watching.
 - **Frontend** (`src/`):
   - `markdown/` — `unified` + `remark` (CommonMark + GFM) parse/serialize,
     `rehype-sanitize` rendering, Shiki highlighting, and the TipTap ⇄ mdast
     bridge. This is the constitutional heart and is covered by the round-trip
     corpus and unit tests.
   - `components/` — reader, TipTap WYSIWYG editor, accessible toolbar, source view.
-  - `export/` — offline Word (`docx`) and consented OneNote/Loop via Microsoft
-    Graph + MSAL.
+  - `slides/` — Marp deck generation and rendering via `@marp-team/marp-core`.
   - `privacy/` — consent state machine, opt-in telemetry, data-subject rights.
 
 ## Development
@@ -118,7 +118,17 @@ The desktop build requires the Rust toolchain and the Tauri prerequisites
 npm run tauri build
 ```
 
-The build outputs land under `src-tauri/target/release/`:
+> **OneDrive note:** if the repository lives inside a synced OneDrive folder,
+> Cargo build scripts can fail with "output path is not a writable directory".
+> Redirect Cargo's target directory outside OneDrive before building:
+>
+> ```powershell
+> $env:CARGO_TARGET_DIR = "C:\Temp\markdit-target"
+> npm run tauri build
+> ```
+
+The build outputs land under the Cargo target directory (`src-tauri/target/release/`
+by default, or `$env:CARGO_TARGET_DIR\release` when redirected):
 
 - `markdit.exe` — the standalone application executable.
 - `bundle/msi/Markdit_<version>_x64_en-US.msi` — Windows Installer package.
@@ -127,20 +137,13 @@ The build outputs land under `src-tauri/target/release/`:
 > Installer code-signing is optional for local builds; see
 > [SECURITY.md](SECURITY.md) for the production signing and update model.
 
-### Cloud export setup (OneNote / Loop)
-
-Exporting to Word works fully offline with no configuration. Exporting to
-**OneNote or Loop** uses Microsoft Graph and therefore requires a free Microsoft
-Entra ID (Azure AD) application registration: copy your application (client) id
-into a local `.env.local` file as `VITE_MSAL_CLIENT_ID`. Step-by-step
-instructions are in [.env.example](.env.example). Without it, Markdit shows a
-clear message instead of attempting sign-in.
-
-
-
 Markdit is **local-first**. On first run telemetry is off, remote content is
 blocked, and no cloud consents exist. Nothing leaves the device without an
 explicit, recorded consent. The UI targets **WCAG 2.2 AA** (keyboard-navigable,
 visible focus, high-contrast theme). See [SECURITY.md](SECURITY.md) for the
 security model, signing, SBOM, and vulnerability disclosure process.
+
+## License
+
+Markdit is released under the [MIT License](LICENSE) © 2026 Etienne Sigwald.
 

@@ -2,9 +2,10 @@
 name = "markdit"
 version = "0.1.0"
 description = "Markdit — a local-first, standards-based Markdown editor"
-authors = ["Markdit contributors"]
+authors = ["Etienne Sigwald"]
 edition = "2021"
 rust-version = "1.77"
+license = "MIT"
 
 [lib]
 name = "markdit_lib"
