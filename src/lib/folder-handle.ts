@@ -80,3 +80,23 @@ export async function clearLastFolder(): Promise<void> {
     // Ignore.
   }
 }
+
+/**
+ * Write text back to a file handle (File System Access API). Re-requests
+ * readwrite permission if needed (must be called from a user gesture). Nothing
+ * leaves the device — the file is written in place (Principle III). Returns
+ * false when permission is refused or the API is unavailable.
+ */
+export async function writeFileHandle(
+  handle: FileSystemFileHandle,
+  text: string,
+): Promise<boolean> {
+  if (typeof handle.createWritable !== 'function') return false;
+  const granted =
+    (await handle.requestPermission?.({ mode: 'readwrite' })) ?? 'granted';
+  if (granted !== 'granted') return false;
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+  return true;
+}

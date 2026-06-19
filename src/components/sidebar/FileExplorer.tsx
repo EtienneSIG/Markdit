@@ -19,6 +19,8 @@ export interface SelectedFile {
   name: string;
   path: string;
   markdown: string;
+  /** File handle for saving back to disk (browser File System Access API). */
+  handle?: FileSystemFileHandle;
 }
 
 export interface FileExplorerProps {
@@ -132,7 +134,7 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
   const openFolder = useCallback(async () => {
     setError(null);
     try {
-      const dir = await window.showDirectoryPicker!({ mode: 'read' });
+      const dir = await window.showDirectoryPicker!({ mode: 'readwrite' });
       await loadDirectory(dir);
       await saveLastFolder(dir);
     } catch (err) {
@@ -149,7 +151,7 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
       setError(null);
       try {
         const granted =
-          (await dir.requestPermission?.({ mode: 'read' })) ?? 'granted';
+          (await dir.requestPermission?.({ mode: 'readwrite' })) ?? 'granted';
         if (granted === 'granted') {
           await loadDirectory(dir);
           await saveLastFolder(dir);
@@ -173,7 +175,7 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     void (async () => {
       const dir = await loadLastFolder();
       if (!dir || cancelled) return;
-      const state = (await dir.queryPermission?.({ mode: 'read' })) ?? 'prompt';
+      const state = (await dir.queryPermission?.({ mode: 'readwrite' })) ?? 'prompt';
       if (cancelled) return;
       if (state === 'granted') {
         try {
@@ -206,7 +208,7 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
       try {
         const file = await node.handle.getFile();
         const markdown = await file.text();
-        onOpenFile({ name: node.name, path: node.path, markdown });
+        onOpenFile({ name: node.name, path: node.path, markdown, handle: node.handle });
       } catch (err) {
         setError(String(err));
       }

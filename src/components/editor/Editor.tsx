@@ -1,5 +1,13 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { useEffect, useRef } from 'react';
 import { parse } from '../../markdown/parse';
 import { serialize } from '../../markdown/serialize';
@@ -26,7 +34,17 @@ export function Editor({ markdown, onChange }: EditorProps): JSX.Element {
   const lastEmitted = useRef<string>(markdown);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Link.configure({ openOnClick: false, autolink: false }),
+      Image.configure({ inline: true, allowBase64: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+    ],
     content: mdastToProseMirror(parse(markdown)) as unknown as Record<string, unknown>,
     onUpdate: ({ editor: ed }) => {
       const doc = ed.getJSON() as unknown as ProseMirrorDoc;
