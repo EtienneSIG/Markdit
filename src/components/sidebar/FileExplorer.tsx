@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isTauriAvailable, documentOpen } from '../../lib/ipc';
 import { loadLastFolder, saveLastFolder, clearLastFolder } from '../../lib/folder-handle';
 import { t } from '../../lib/i18n';
+
+/** Sidebar width bounds (px) and persistence key for the resize handle. */
+const MIN_SIDEBAR_WIDTH = 180;
+const MAX_SIDEBAR_WIDTH = 560;
+const DEFAULT_SIDEBAR_WIDTH = 256;
+const SIDEBAR_WIDTH_KEY = 'markdit.sidebarWidth';
+
+const clampWidth = (w: number): number =>
+  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, w));
 
 /** A node in the Markdown file tree shown in the sidebar. */
 export interface FileNode {
@@ -74,6 +83,7 @@ function Tree({ nodes, activePath, depth, onSelect }: TreeProps): JSX.Element {
                 type="button"
                 className="markdit-tree-row markdit-tree-dir"
                 style={{ paddingLeft: `${depth * 0.75 + 0.5}rem` }}
+                title={node.name}
                 onClick={() => setCollapsed((c) => ({ ...c, [node.path]: !isCollapsed }))}
               >
                 <span aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span> {node.name}
@@ -97,6 +107,7 @@ function Tree({ nodes, activePath, depth, onSelect }: TreeProps): JSX.Element {
                 activePath === node.path ? ' is-active' : ''
               }`}
               style={{ paddingLeft: `${depth * 0.75 + 1.25}rem` }}
+              title={node.name}
               onClick={() => onSelect(node)}
             >
               {node.name}
@@ -120,6 +131,58 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
   const [error, setError] = useState<string | null>(null);
   /** A remembered folder awaiting a user gesture to re-grant read permission. */
   const [pendingFolder, setPendingFolder] = useState<FileSystemDirectoryHandle | null>(null);
+
+  /** User-adjustable sidebar width (px), restored from the previous session. */
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SIDEBAR_WIDTH;
+    const saved = Number(window.localStorage?.getItem(SIDEBAR_WIDTH_KEY));
+    return Number.isFinite(saved) && saved > 0 ? clampWidth(saved) : DEFAULT_SIDEBAR_WIDTH;
+  });
+  const navRef = useRef<HTMLElement>(null);
+
+  // Persist the chosen width so the layout is stable across sessions.
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+    } catch {
+      // Storage may be unavailable (private mode); width stays in-memory only.
+    }
+  }, [sidebarWidth]);
+
+  /** Drag the right edge to resize; uses pointer capture for a smooth drag. */
+  const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = navRef.current?.getBoundingClientRect().width ?? DEFAULT_SIDEBAR_WIDTH;
+    const onMove = (ev: PointerEvent) => {
+      setSidebarWidth(clampWidth(startWidth + (ev.clientX - startX)));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, []);
+
+  /** Keyboard resize for accessibility (WCAG 2.2): arrows nudge the width. */
+  const onResizerKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 32 : 16;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setSidebarWidth((w) => clampWidth(w - step));
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setSidebarWidth((w) => clampWidth(w + step));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+    }
+  }, []);
 
   const canPickDirectory = typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
 
@@ -217,7 +280,12 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
   );
 
   return (
-    <nav className="markdit-sidebar" aria-label={t('sidebar.title')}>
+    <nav
+      ref={navRef}
+      className="markdit-sidebar"
+      aria-label={t('sidebar.title')}
+      style={{ width: `${sidebarWidth}px` }}
+    >
       <div className="markdit-sidebar-header">
         <strong>{t('sidebar.files')}</strong>
         {canPickDirectory ? (
@@ -262,6 +330,21 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
           {error}
         </p>
       )}
+
+      <div
+        className="markdit-sidebar-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={t('sidebar.resize')}
+        aria-valuenow={sidebarWidth}
+        aria-valuemin={MIN_SIDEBAR_WIDTH}
+        aria-valuemax={MAX_SIDEBAR_WIDTH}
+        tabIndex={0}
+        onPointerDown={startResize}
+        onKeyDown={onResizerKeyDown}
+        onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+        title={t('sidebar.resize')}
+      />
     </nav>
   );
 }

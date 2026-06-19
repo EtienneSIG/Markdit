@@ -173,6 +173,138 @@ const RIBBON_GROUPS: { labelKey: string; actions: FormattingActionId[] }[] = [
   { labelKey: 'ribbon.group.insert', actions: ['codeBlock', 'horizontalRule'] },
 ];
 
+/** A single table command exposed in the ribbon. */
+interface TableButton {
+  id: string;
+  labelKey: string;
+  glyph: JSX.Element;
+  /** Whether the command only applies inside an existing table. */
+  contextual: boolean;
+  run: (editor: Editor) => void;
+}
+
+const TABLE_BUTTONS: TableButton[] = [
+  {
+    id: 'insertTable',
+    labelKey: 'table.insert',
+    contextual: false,
+    run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+    glyph: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="1" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <line x1="9" y1="4" x2="9" y2="20" />
+        <line x1="15" y1="4" x2="15" y2="20" />
+      </>
+    ),
+  },
+  {
+    id: 'addRowAfter',
+    labelKey: 'table.addRow',
+    contextual: true,
+    run: (e) => e.chain().focus().addRowAfter().run(),
+    glyph: (
+      <>
+        <rect x="3" y="4" width="18" height="6" rx="1" />
+        <line x1="12" y1="14" x2="12" y2="20" />
+        <line x1="9" y1="17" x2="15" y2="17" />
+      </>
+    ),
+  },
+  {
+    id: 'deleteRow',
+    labelKey: 'table.deleteRow',
+    contextual: true,
+    run: (e) => e.chain().focus().deleteRow().run(),
+    glyph: (
+      <>
+        <rect x="3" y="4" width="18" height="6" rx="1" />
+        <line x1="9" y1="17" x2="15" y2="17" />
+      </>
+    ),
+  },
+  {
+    id: 'addColumnAfter',
+    labelKey: 'table.addColumn',
+    contextual: true,
+    run: (e) => e.chain().focus().addColumnAfter().run(),
+    glyph: (
+      <>
+        <rect x="4" y="3" width="6" height="18" rx="1" />
+        <line x1="17" y1="9" x2="17" y2="15" />
+        <line x1="14" y1="12" x2="20" y2="12" />
+      </>
+    ),
+  },
+  {
+    id: 'deleteColumn',
+    labelKey: 'table.deleteColumn',
+    contextual: true,
+    run: (e) => e.chain().focus().deleteColumn().run(),
+    glyph: (
+      <>
+        <rect x="4" y="3" width="6" height="18" rx="1" />
+        <line x1="14" y1="12" x2="20" y2="12" />
+      </>
+    ),
+  },
+  {
+    id: 'deleteTable',
+    labelKey: 'table.delete',
+    contextual: true,
+    run: (e) => e.chain().focus().deleteTable().run(),
+    glyph: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="1" />
+        <line x1="8" y1="9" x2="16" y2="15" />
+        <line x1="16" y1="9" x2="8" y2="15" />
+      </>
+    ),
+  },
+];
+
+/** Table editing controls (insert + add/remove rows and columns). */
+function TableControls({ editor }: { editor: Editor | null }): JSX.Element {
+  const inTable = editor?.isActive('table') ?? false;
+  return (
+    <div className="markdit-ribbon-group" role="group" aria-label={t('ribbon.group.table')}>
+      <div className="markdit-ribbon-buttons">
+        {TABLE_BUTTONS.map((btn) => {
+          const label = t(btn.labelKey);
+          const disabled = !editor || (btn.contextual && !inTable);
+          return (
+            <button
+              key={btn.id}
+              type="button"
+              title={label}
+              aria-label={label}
+              disabled={disabled}
+              onClick={() => editor && btn.run(editor)}
+            >
+              <svg
+                className="markdit-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                {btn.glyph}
+              </svg>
+            </button>
+          );
+        })}
+      </div>
+      <span className="markdit-ribbon-label" aria-hidden="true">
+        {t('ribbon.group.table')}
+      </span>
+    </div>
+  );
+}
+
 /**
  * Accessible formatting ribbon (US2, FR-004, Principle IV). A single
  * `role="toolbar"` groups portable Markdown controls into Word-like sections;
@@ -213,6 +345,7 @@ export function Toolbar({ editor }: ToolbarProps): JSX.Element {
           </span>
         </div>
       ))}
+      <TableControls editor={editor} />
     </div>
   );
 }

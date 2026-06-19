@@ -297,6 +297,7 @@ a:focus-visible,
 
 /* ───────────────────────── Sidebar (Loop nav) ─────────────────────────── */
 .markdit-sidebar {
+  position: relative;
   width: 16rem;
   flex-shrink: 0;
   display: flex;
@@ -304,6 +305,29 @@ a:focus-visible,
   border-right: 1px solid var(--border);
   background: var(--surface);
   overflow: hidden;
+}
+
+/* Drag handle on the right edge to widen/narrow the navigation. */
+.markdit-sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+  transition: background 0.12s ease;
+}
+
+.markdit-sidebar-resizer:hover,
+.markdit-sidebar-resizer:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.markdit-sidebar-resizer:focus-visible {
+  box-shadow: inset -2px 0 0 var(--accent-text);
 }
 
 .markdit-sidebar-header {
@@ -414,6 +438,18 @@ a:focus-visible,
   text-overflow: ellipsis;
   white-space: nowrap;
   transition: background 0.1s ease;
+}
+
+/* Truncate long names with an ellipsis inside the flex row. */
+.markdit-tree-row > span {
+  flex: 0 0 auto;
+}
+
+.markdit-tree-file {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .markdit-tree-row:hover {
