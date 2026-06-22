@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:a11y": "playwright test tests/a11y",
     "sbom": "node scripts/sbom.mjs",
+    "sign:win": "pwsh -NoProfile -File scripts/sign-windows.ps1",
     "tauri": "tauri"
   },
   "dependencies": {
