@@ -48,6 +48,10 @@ Grab the latest Windows build from the
 Windows 11 already ships the required WebView2 runtime; on Windows 10 the
 installer fetches it automatically if needed.
 
+> First launch shows a Microsoft Defender SmartScreen warning because the
+> installer is not signed with a paid certificate. See the step-by-step,
+> illustrated [installation guide](docs/INSTALL.md) to install it safely.
+
 ## Regulatory compliance
 
 Markdit targets EU and North American markets and is held to GDPR, the European

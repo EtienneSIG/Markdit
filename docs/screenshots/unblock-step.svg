@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="540" viewBox="0 0 400 540" font-family="Segoe UI, Arial, sans-serif">
+  <!-- window -->
+  <rect width="400" height="540" rx="8" fill="#f3f3f3" stroke="#c8c8c8"/>
+  <!-- title bar -->
+  <rect x="0" y="0" width="400" height="40" rx="8" fill="#ffffff"/>
+  <rect x="0" y="20" width="400" height="20" fill="#ffffff"/>
+  <text x="16" y="26" fill="#1f1f1f" font-size="14" font-weight="600">Markdit_0.1.2_x64-setup.exe Properties</text>
+  <text x="372" y="26" fill="#5a5a5a" font-size="16" text-anchor="middle">×</text>
+  <!-- tab strip -->
+  <rect x="16" y="52" width="84" height="26" rx="3" fill="#ffffff" stroke="#c8c8c8"/>
+  <text x="58" y="69" fill="#1f1f1f" font-size="13" text-anchor="middle">General</text>
+  <text x="130" y="69" fill="#5a5a5a" font-size="13" text-anchor="middle">Security</text>
+  <text x="205" y="69" fill="#5a5a5a" font-size="13" text-anchor="middle">Details</text>
+  <!-- panel -->
+  <rect x="16" y="84" width="368" height="396" rx="4" fill="#ffffff" stroke="#d6d6d6"/>
+  <!-- file row -->
+  <rect x="34" y="104" width="28" height="28" rx="3" fill="#3a78c2"/>
+  <text x="48" y="124" fill="#ffffff" font-size="13" text-anchor="middle">M</text>
+  <text x="76" y="123" fill="#1f1f1f" font-size="14">Markdit_0.1.2_x64-setup.exe</text>
+  <line x1="34" y1="148" x2="366" y2="148" stroke="#e6e6e6"/>
+  <!-- meta -->
+  <text x="34" y="176" fill="#5a5a5a" font-size="13">Type of file:   Application (.exe)</text>
+  <text x="34" y="204" fill="#5a5a5a" font-size="13">Size:           5.80 MB</text>
+  <line x1="34" y1="226" x2="366" y2="226" stroke="#e6e6e6"/>
+  <!-- security section -->
+  <text x="34" y="392" fill="#5a5a5a" font-size="13">Security:   This file came from another</text>
+  <text x="88" y="412" fill="#5a5a5a" font-size="13">computer and might be blocked to</text>
+  <text x="88" y="432" fill="#5a5a5a" font-size="13">help protect this computer.</text>
+  <!-- Unblock checkbox (highlighted) -->
+  <rect x="250" y="392" width="18" height="18" rx="3" fill="#ffffff" stroke="#5a5a5a"/>
+  <text x="278" y="406" fill="#1f1f1f" font-size="13">Unblock</text>
+  <rect x="244" y="386" width="118" height="30" rx="6" fill="none" stroke="#ff3b30" stroke-width="3"/>
+  <!-- step badge + arrow -->
+  <circle cx="210" cy="401" r="15" fill="#ff3b30"/>
+  <text x="210" y="407" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">2</text>
+  <path d="M226 401 l14 0" stroke="#ff3b30" stroke-width="3" marker-end="url(#arrow)"/>
+  <!-- buttons -->
+  <rect x="120" y="498" width="76" height="30" rx="3" fill="#e9e9e9" stroke="#c0c0c0"/>
+  <text x="158" y="518" fill="#1f1f1f" font-size="13" text-anchor="middle">OK</text>
+  <rect x="204" y="498" width="76" height="30" rx="3" fill="#e9e9e9" stroke="#c0c0c0"/>
+  <text x="242" y="518" fill="#1f1f1f" font-size="13" text-anchor="middle">Cancel</text>
+  <rect x="288" y="498" width="76" height="30" rx="3" fill="#e9e9e9" stroke="#c0c0c0"/>
+  <text x="326" y="518" fill="#1f1f1f" font-size="13" text-anchor="middle">Apply</text>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 z" fill="#ff3b30"/>
+    </marker>
+  </defs>
+</svg>

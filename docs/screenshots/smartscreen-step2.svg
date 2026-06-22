@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="380" viewBox="0 0 560 380" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="560" height="380" fill="#1669c1"/>
+  <!-- close button -->
+  <rect x="500" y="16" width="36" height="28" rx="4" fill="#ffffff"/>
+  <path d="M512 24 l12 12 M524 24 l-12 12" stroke="#1669c1" stroke-width="2" stroke-linecap="round"/>
+  <!-- title -->
+  <text x="36" y="78" fill="#ffffff" font-size="30" font-weight="600">Windows protected your PC</text>
+  <!-- body -->
+  <text x="36" y="118" fill="#eaf2fb" font-size="16">Microsoft Defender SmartScreen prevented an unrecognized app from</text>
+  <text x="36" y="142" fill="#eaf2fb" font-size="16">starting. Running this app might put your PC at risk.</text>
+  <!-- app / publisher details revealed -->
+  <text x="36" y="184" fill="#ffffff" font-size="15">App:        Markdit_0.1.2_x64-setup.exe</text>
+  <text x="36" y="208" fill="#ffffff" font-size="15">Publisher:  Unknown publisher</text>
+  <!-- Run anyway button (highlighted) -->
+  <rect x="318" y="312" width="116" height="40" rx="3" fill="#0d4f93"/>
+  <text x="376" y="337" fill="#ffffff" font-size="15" text-anchor="middle">Run anyway</text>
+  <rect x="314" y="308" width="124" height="48" rx="6" fill="none" stroke="#ff3b30" stroke-width="3"/>
+  <!-- Don't run button -->
+  <rect x="446" y="312" width="90" height="40" rx="3" fill="#0d4f93"/>
+  <text x="491" y="337" fill="#ffffff" font-size="15" text-anchor="middle">Don't run</text>
+  <!-- step badge + arrow -->
+  <circle cx="376" cy="276" r="16" fill="#ff3b30"/>
+  <text x="376" y="282" fill="#ffffff" font-size="18" font-weight="700" text-anchor="middle">2</text>
+  <path d="M376 292 l0 14" stroke="#ff3b30" stroke-width="3" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 z" fill="#ff3b30"/>
+    </marker>
+  </defs>
+</svg>
