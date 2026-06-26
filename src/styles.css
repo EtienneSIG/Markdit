@@ -367,6 +367,12 @@ a:focus-visible,
   color: var(--muted);
 }
 
+.markdit-sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .markdit-sidebar-header button {
   display: inline-flex;
   align-items: center;
@@ -486,6 +492,55 @@ a:focus-visible,
 
 .markdit-tree-dir {
   font-weight: 600;
+}
+
+/* Multi-root: each opened folder / files group is a removable top-level row. */
+.markdit-tree--roots > .markdit-root {
+  margin-bottom: 0.15rem;
+}
+
+.markdit-root-row {
+  display: flex;
+  align-items: center;
+}
+
+.markdit-root-row .markdit-root-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.markdit-root-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 0.25rem;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: background 0.1s ease, opacity 0.1s ease;
+}
+
+.markdit-root-row:hover .markdit-root-remove,
+.markdit-root-remove:focus-visible {
+  opacity: 1;
+}
+
+.markdit-root-remove:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+.markdit-root-empty {
+  padding: 0.35rem 0.5rem 0.35rem 1.5rem;
+  font-size: 0.8rem;
 }
 
 /* ───────────────────────── Document surface ───────────────────────────── */

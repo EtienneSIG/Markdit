@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isTauriAvailable, documentOpen } from '../../lib/ipc';
-import { loadLastFolder, saveLastFolder, clearLastFolder } from '../../lib/folder-handle';
+import { loadFolders, saveFolders, clearFolders } from '../../lib/folder-handle';
 import { t } from '../../lib/i18n';
 
 /** Sidebar width bounds (px) and persistence key for the resize handle. */
@@ -119,18 +119,70 @@ function Tree({ nodes, activePath, depth, onSelect }: TreeProps): JSX.Element {
   );
 }
 
+/** A top-level entry in the sidebar: an opened folder or a group of files. */
+interface WorkspaceRoot {
+  id: string;
+  name: string;
+  kind: 'folder' | 'files';
+  nodes: FileNode[];
+  /** Present for folder roots; used to persist/re-grant access. */
+  dirHandle?: FileSystemDirectoryHandle;
+}
+
+interface RootSectionProps {
+  root: WorkspaceRoot;
+  activePath: string | null;
+  onSelect: (node: FileNode) => void;
+  onRemove: (id: string) => void;
+}
+
+/** A collapsible top-level root (folder or files group) with a remove control. */
+function RootSection({ root, activePath, onSelect, onRemove }: RootSectionProps): JSX.Element {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <li role="treeitem" aria-expanded={!collapsed} className="markdit-root">
+      <div className="markdit-root-row">
+        <button
+          type="button"
+          className="markdit-tree-row markdit-tree-dir markdit-root-toggle"
+          title={root.name}
+          onClick={() => setCollapsed((c) => !c)}
+        >
+          <span aria-hidden="true">{collapsed ? '▸' : '▾'}</span> {root.name}
+        </button>
+        <button
+          type="button"
+          className="markdit-root-remove"
+          aria-label={t('sidebar.removeRoot').replace('{name}', root.name)}
+          title={t('sidebar.removeRoot').replace('{name}', root.name)}
+          onClick={() => onRemove(root.id)}
+        >
+          ✕
+        </button>
+      </div>
+      {!collapsed &&
+        (root.nodes.length > 0 ? (
+          <Tree nodes={root.nodes} activePath={activePath} depth={1} onSelect={onSelect} />
+        ) : (
+          <p className="markdit-sidebar-empty markdit-root-empty">{t('sidebar.rootEmpty')}</p>
+        ))}
+    </li>
+  );
+}
+
 /**
  * Persistent left navigation sidebar (always visible) for browsing and opening
- * Markdown files. Uses the browser File System Access API to read a chosen
- * folder locally — no upload, nothing leaves the device (Principle III). When
- * running under Tauri, falls back to the native open dialog.
+ * Markdown files. Uses the browser File System Access API to read chosen
+ * folders and files locally — no upload, nothing leaves the device
+ * (Principle III). Supports several folders at once plus individually added
+ * files (multi-root workspace). When running without the File System Access
+ * API, falls back to the native Tauri open dialog.
  */
 export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX.Element {
-  const [tree, setTree] = useState<FileNode[]>([]);
-  const [rootName, setRootName] = useState<string | null>(null);
+  const [roots, setRoots] = useState<WorkspaceRoot[]>([]);
   const [error, setError] = useState<string | null>(null);
-  /** A remembered folder awaiting a user gesture to re-grant read permission. */
-  const [pendingFolder, setPendingFolder] = useState<FileSystemDirectoryHandle | null>(null);
+  /** Remembered folders awaiting a user gesture to re-grant read permission. */
+  const [pendingFolders, setPendingFolders] = useState<FileSystemDirectoryHandle[]>([]);
 
   /** User-adjustable sidebar width (px), restored from the previous session. */
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -184,80 +236,151 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     }
   }, []);
 
-  const canPickDirectory = typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+  const canPickDirectory =
+    typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+  const canPickFiles =
+    typeof window !== 'undefined' && typeof window.showOpenFilePicker === 'function';
 
-  /** Read a directory handle into the tree, updating the sidebar state. */
-  const loadDirectory = useCallback(async (dir: FileSystemDirectoryHandle) => {
-    const nodes = await readDirectory(dir);
-    setRootName(dir.name);
-    setTree(nodes);
-    setPendingFolder(null);
+  /** Persist the current folder roots (file roots stay session-only). */
+  const persistFolders = useCallback((next: WorkspaceRoot[]) => {
+    const handles = next
+      .filter((r) => r.kind === 'folder' && r.dirHandle)
+      .map((r) => r.dirHandle!);
+    if (handles.length > 0) void saveFolders(handles);
+    else void clearFolders();
   }, []);
 
+  /** Add (or refresh) a folder root from a directory handle. */
+  const addFolderRoot = useCallback(
+    async (dir: FileSystemDirectoryHandle) => {
+      const nodes = await readDirectory(dir);
+      setRoots((prev) => {
+        // Replace an existing root for the same folder name to avoid duplicates.
+        const withoutDupe = prev.filter(
+          (r) => !(r.kind === 'folder' && r.name === dir.name),
+        );
+        const next: WorkspaceRoot[] = [
+          ...withoutDupe,
+          { id: `folder:${dir.name}`, name: dir.name, kind: 'folder', nodes, dirHandle: dir },
+        ];
+        persistFolders(next);
+        return next;
+      });
+      setPendingFolders((p) => p.filter((h) => h.name !== dir.name));
+    },
+    [persistFolders],
+  );
+
+  /** Pick a folder and add it as a new root (keeps any existing roots). */
   const openFolder = useCallback(async () => {
     setError(null);
     try {
       const dir = await window.showDirectoryPicker!({ mode: 'readwrite' });
-      await loadDirectory(dir);
-      await saveLastFolder(dir);
+      await addFolderRoot(dir);
     } catch (err) {
-      // User cancelled the picker — not an error worth surfacing.
-      if ((err as DOMException)?.name !== 'AbortError') {
-        setError(String(err));
-      }
+      if ((err as DOMException)?.name !== 'AbortError') setError(String(err));
     }
-  }, [loadDirectory]);
+  }, [addFolderRoot]);
+
+  /** Pick one or more Markdown files and add them under a "Files" root. */
+  const openFiles = useCallback(async () => {
+    setError(null);
+    try {
+      const handles = await window.showOpenFilePicker!({
+        multiple: true,
+        types: [
+          {
+            description: 'Markdown',
+            accept: { 'text/markdown': ['.md', '.markdown', '.mdown', '.mkd'] },
+          },
+        ],
+      });
+      const newFiles: FileNode[] = handles.map((h) => ({
+        name: h.name,
+        kind: 'file',
+        handle: h,
+        path: `files/${h.name}`,
+      }));
+      setRoots((prev) => {
+        const existing = prev.find((r) => r.id === 'files');
+        const mergedNodes = existing
+          ? [
+              ...existing.nodes,
+              ...newFiles.filter((f) => !existing.nodes.some((n) => n.path === f.path)),
+            ].sort((a, b) => a.name.localeCompare(b.name))
+          : newFiles.sort((a, b) => a.name.localeCompare(b.name));
+        const filesRoot: WorkspaceRoot = {
+          id: 'files',
+          name: t('sidebar.filesGroup'),
+          kind: 'files',
+          nodes: mergedNodes,
+        };
+        return [filesRoot, ...prev.filter((r) => r.id !== 'files')];
+      });
+    } catch (err) {
+      if ((err as DOMException)?.name !== 'AbortError') setError(String(err));
+    }
+  }, []);
+
+  /** Remove a root (folder or files group) from the sidebar. */
+  const removeRoot = useCallback(
+    (id: string) => {
+      setRoots((prev) => {
+        const next = prev.filter((r) => r.id !== id);
+        persistFolders(next);
+        return next;
+      });
+    },
+    [persistFolders],
+  );
 
   /** Re-grant access to a remembered folder (requires a user gesture). */
   const reopenFolder = useCallback(
     async (dir: FileSystemDirectoryHandle) => {
       setError(null);
       try {
-        const granted =
-          (await dir.requestPermission?.({ mode: 'readwrite' })) ?? 'granted';
+        const granted = (await dir.requestPermission?.({ mode: 'readwrite' })) ?? 'granted';
         if (granted === 'granted') {
-          await loadDirectory(dir);
-          await saveLastFolder(dir);
+          await addFolderRoot(dir);
         } else {
-          setPendingFolder(null);
-          await clearLastFolder();
+          setPendingFolders((p) => p.filter((h) => h.name !== dir.name));
         }
       } catch (err) {
         setError(String(err));
       }
     },
-    [loadDirectory],
+    [addFolderRoot],
   );
 
-  // Restore the last opened folder on mount. If the browser still grants read
-  // permission we load it immediately; if it needs a fresh gesture we surface a
-  // one-click "reopen" prompt; otherwise we forget it.
+  // Restore remembered folders on mount. Folders the browser still grants are
+  // loaded immediately; those needing a fresh gesture surface a one-click
+  // "reopen" prompt; the rest are forgotten.
   useEffect(() => {
     if (!canPickDirectory) return;
     let cancelled = false;
     void (async () => {
-      const dir = await loadLastFolder();
-      if (!dir || cancelled) return;
-      const state = (await dir.queryPermission?.({ mode: 'readwrite' })) ?? 'prompt';
-      if (cancelled) return;
-      if (state === 'granted') {
-        try {
-          await loadDirectory(dir);
-        } catch {
-          if (!cancelled) setPendingFolder(dir);
+      const dirs = await loadFolders();
+      if (cancelled || dirs.length === 0) return;
+      for (const dir of dirs) {
+        const state = (await dir.queryPermission?.({ mode: 'readwrite' })) ?? 'prompt';
+        if (cancelled) return;
+        if (state === 'granted') {
+          try {
+            await addFolderRoot(dir);
+          } catch {
+            if (!cancelled) setPendingFolders((p) => [...p, dir]);
+          }
+        } else if (state === 'prompt') {
+          setPendingFolders((p) => [...p, dir]);
         }
-      } else if (state === 'prompt') {
-        setPendingFolder(dir);
-      } else {
-        await clearLastFolder();
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [canPickDirectory, loadDirectory]);
+  }, [canPickDirectory, addFolderRoot]);
 
-
+  /** Fallback open via the native Tauri dialog (no File System Access API). */
   const openSingleFile = useCallback(async () => {
     const res = await documentOpen();
     if (res.ok) {
@@ -279,6 +402,8 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     [onOpenFile],
   );
 
+  const hasContent = roots.length > 0;
+
   return (
     <nav
       ref={navRef}
@@ -288,39 +413,56 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     >
       <div className="markdit-sidebar-header">
         <strong>{t('sidebar.files')}</strong>
-        {canPickDirectory ? (
-          <button type="button" onClick={openFolder} title={t('sidebar.openFolder')}>
-            {t('sidebar.openFolder')}
-          </button>
-        ) : (
-          isTauriAvailable() && (
-            <button type="button" onClick={openSingleFile} title={t('action.open')}>
-              {t('action.open')}
+        <div className="markdit-sidebar-header-actions">
+          {canPickDirectory && (
+            <button type="button" onClick={openFolder} title={t('sidebar.openFolder')}>
+              {t('sidebar.openFolder')}
             </button>
-          )
-        )}
+          )}
+          {canPickFiles ? (
+            <button type="button" onClick={openFiles} title={t('sidebar.openFiles')}>
+              {t('sidebar.openFiles')}
+            </button>
+          ) : (
+            !canPickDirectory &&
+            isTauriAvailable() && (
+              <button type="button" onClick={openSingleFile} title={t('action.open')}>
+                {t('action.open')}
+              </button>
+            )
+          )}
+        </div>
       </div>
 
-      {rootName && <div className="markdit-sidebar-root">{rootName}</div>}
-
-      {pendingFolder && tree.length === 0 && (
+      {pendingFolders.map((dir) => (
         <button
+          key={`pending:${dir.name}`}
           type="button"
           className="markdit-sidebar-reopen"
-          onClick={() => reopenFolder(pendingFolder)}
+          onClick={() => reopenFolder(dir)}
         >
-          {t('sidebar.reopen').replace('{name}', pendingFolder.name)}
+          {t('sidebar.reopen').replace('{name}', dir.name)}
         </button>
-      )}
+      ))}
 
-      {tree.length > 0 ? (
-        <div className="markdit-sidebar-body" role="tree" aria-label={t('sidebar.files')}>
-          <Tree nodes={tree} activePath={activePath} depth={0} onSelect={handleSelect} />
+      {hasContent ? (
+        <div className="markdit-sidebar-body">
+          <ul className="markdit-tree markdit-tree--roots" role="tree" aria-label={t('sidebar.files')}>
+            {roots.map((root) => (
+              <RootSection
+                key={root.id}
+                root={root}
+                activePath={activePath}
+                onSelect={handleSelect}
+                onRemove={removeRoot}
+              />
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="markdit-sidebar-body">
           <p className="markdit-sidebar-empty">
-            {canPickDirectory ? t('sidebar.empty') : t('sidebar.unsupported')}
+            {canPickDirectory || canPickFiles ? t('sidebar.empty') : t('sidebar.unsupported')}
           </p>
         </div>
       )}
