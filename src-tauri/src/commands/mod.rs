@@ -37,6 +37,7 @@ impl CommandError {
     pub fn conflict(msg: impl Into<String>) -> Self {
         Self { code: "CONFLICT".into(), message: msg.into() }
     }
+    #[allow(dead_code)] // Part of the closed error API; used by forthcoming command paths.
     pub fn invalid_argument(msg: impl Into<String>) -> Self {
         Self { code: "INVALID_ARGUMENT".into(), message: msg.into() }
     }
