@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Reader } from '../components/reader/Reader';
 import { RenderNotice } from '../components/reader/RenderNotice';
+import { UpdateBanner } from '../components/reader/UpdateBanner';
 import { Editor } from '../components/editor/Editor';
 import { SlidesDialog } from '../components/dialogs/SlidesDialog';
 import { ConflictDialog } from '../components/dialogs/ConflictDialog';
@@ -308,6 +309,7 @@ export function App(): JSX.Element {
         </nav>
       </header>
 
+      <UpdateBanner />
       <RenderNotice blockedCount={blockedCount} onEnableRemote={enableRemote} />
 
       <div className="markdit-body">

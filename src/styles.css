@@ -281,6 +281,28 @@ a:focus-visible,
   cursor: pointer;
 }
 
+/* Update-available variant: accent the banner and push the dismiss to the end. */
+.markdit-notice--update {
+  background: var(--accent-soft);
+}
+
+.markdit-notice--update > span {
+  font-weight: 500;
+}
+
+.markdit-notice--update .markdit-notice-dismiss {
+  margin-left: auto;
+  border-color: transparent;
+  color: var(--muted);
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+}
+
+.markdit-notice--update .markdit-notice-dismiss:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
 /* ───────────────────────── Body: sidebar + main ───────────────────────── */
 .markdit-body {
   flex: 1;
@@ -291,7 +313,7 @@ a:focus-visible,
 .markdit-main {
   flex: 1;
   overflow: auto;
-  padding: 2rem;
+  padding: clamp(0.75rem, 3vw, 2rem);
   background: var(--surface);
 }
 
@@ -469,9 +491,12 @@ a:focus-visible,
 /* ───────────────────────── Document surface ───────────────────────────── */
 .markdit-reader,
 .markdit-editor {
-  max-width: 48rem;
+  /* Adapt to the available main-area width while capping line length on
+     ultra-wide displays for comfortable reading (FR-001..FR-003). */
+  width: 100%;
+  max-width: 80rem;
   margin: 0 auto;
-  padding: 2.5rem 3rem;
+  padding: 2.5rem clamp(1rem, 4vw, 3.5rem);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
