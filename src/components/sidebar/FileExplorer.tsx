@@ -180,6 +180,7 @@ function RootSection({ root, activePath, onSelect, onRemove }: RootSectionProps)
  */
 export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX.Element {
   const [roots, setRoots] = useState<WorkspaceRoot[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Remembered folders awaiting a user gesture to re-grant read permission. */
   const [pendingFolders, setPendingFolders] = useState<FileSystemDirectoryHandle[]>([]);
@@ -402,7 +403,32 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     [onOpenFile],
   );
 
+  /** Re-read every opened folder from disk to pick up added/removed files. */
+  const refreshTree = useCallback(async () => {
+    if (roots.length === 0 || refreshing) return;
+    setError(null);
+    setRefreshing(true);
+    try {
+      const refreshed = await Promise.all(
+        roots.map(async (r) => {
+          if (r.kind === 'folder' && r.dirHandle) {
+            try {
+              return { ...r, nodes: await readDirectory(r.dirHandle) };
+            } catch {
+              return r;
+            }
+          }
+          return r;
+        }),
+      );
+      setRoots(refreshed);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [roots, refreshing]);
+
   const hasContent = roots.length > 0;
+  const hasFolderRoot = roots.some((r) => r.kind === 'folder');
 
   return (
     <nav
@@ -414,6 +440,31 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
       <div className="markdit-sidebar-header">
         <strong>{t('sidebar.files')}</strong>
         <div className="markdit-sidebar-header-actions">
+          {hasFolderRoot && (
+            <button
+              type="button"
+              className="markdit-icon-button"
+              onClick={refreshTree}
+              disabled={refreshing}
+              aria-label={t('sidebar.refresh')}
+              title={t('sidebar.refresh')}
+            >
+              <svg
+                className={`markdit-icon${refreshing ? ' is-spinning' : ''}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+              </svg>
+            </button>
+          )}
           {canPickDirectory && (
             <button type="button" onClick={openFolder} title={t('sidebar.openFolder')}>
               {t('sidebar.openFolder')}
