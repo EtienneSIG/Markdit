@@ -1,6 +1,6 @@
 [package]
 name = "markdit"
-version = "0.2.0"
+version = "0.2.1"
 description = "Markdit — a local-first, standards-based Markdown editor"
 authors = ["Etienne Sigwald"]
 edition = "2021"
