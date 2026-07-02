@@ -7,12 +7,14 @@ feel takes cues from Microsoft Loop, with a Word-like formatting ribbon.
 ## Screenshots
 
 **Read mode** — open `.md` files and read them rendered with GitHub-Flavored
-Markdown fidelity, in a clean document card with a collapsible file sidebar.
+Markdown fidelity, in a clean document card with a collapsible file sidebar. A
+language toggle (English / French) sits in the top bar and a status bar in the
+bottom-right shows the license, version, and update-check state.
 
 ![Markdit in Read mode](docs/screenshots/read-view.png)
 
-**Edit mode** — a Word-like formatting ribbon (Font, Paragraph, Insert) drives a
-WYSIWYG editor while the underlying file stays portable, clean Markdown.
+**Edit mode** — a Word-like formatting ribbon (Font, Paragraph, Insert, Table)
+drives a WYSIWYG editor while the underlying file stays portable, clean Markdown.
 
 ![Markdit in Edit mode with the formatting ribbon](docs/screenshots/edit-view.png)
 
@@ -34,6 +36,8 @@ then copy the Markdown, save it, or export a self-contained HTML deck.
    into other apps.
 6. **Slides** — generate a Marp deck from the document, preview it, switch the
    theme, and export it as self-contained HTML — all on-device.
+7. **Bilingual UI** — switch the interface between English and French from the
+   top bar; the choice is saved locally and nothing is sent off the device.
 
 ## Download
 

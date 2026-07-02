@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+/** App version, injected at build time from package.json (see vite.config.ts). */
+declare const __APP_VERSION__: string;
+/** SPDX license id, injected at build time from package.json. */
+declare const __APP_LICENSE__: string;
+
 interface ImportMetaEnv {
   readonly VITE_MSAL_CLIENT_ID?: string;
 }

@@ -77,6 +77,15 @@ const STRINGS: Record<Locale, Dict> = {
       'This file was modified outside Markdit. Reload the version on disk (your unsaved changes will be lost) or keep editing your version.',
     'conflict.reload': 'Reload from disk',
     'conflict.keep': 'Keep my version',
+    'lang.label': 'Language',
+    'lang.switchTo': 'Switch to French',
+    'lang.current': 'English',
+    'footer.license': 'License',
+    'footer.version': 'Version {version}',
+    'footer.check.checking': 'Checking for updates…',
+    'footer.check.upToDate': 'Up to date',
+    'footer.check.available': 'Update available',
+    'footer.check.unavailable': 'Update check unavailable',
   },
   fr: {
     'app.title': 'Markdit',
@@ -149,6 +158,15 @@ const STRINGS: Record<Locale, Dict> = {
       "Ce fichier a été modifié en dehors de Markdit. Rechargez la version du disque (vos modifications non enregistrées seront perdues) ou continuez avec votre version.",
     'conflict.reload': 'Recharger depuis le disque',
     'conflict.keep': 'Conserver ma version',
+    'lang.label': 'Langue',
+    'lang.switchTo': 'Passer en anglais',
+    'lang.current': 'Français',
+    'footer.license': 'Licence',
+    'footer.version': 'Version {version}',
+    'footer.check.checking': 'Recherche de mises à jour…',
+    'footer.check.upToDate': 'À jour',
+    'footer.check.available': 'Mise à jour disponible',
+    'footer.check.unavailable': 'Vérification indisponible',
   },
 };
 
@@ -158,6 +176,16 @@ export function setLocale(locale: string): void {
   current = locale.startsWith('fr') ? 'fr' : 'en';
 }
 
-export function t(key: string): string {
-  return STRINGS[current][key] ?? STRINGS.en[key] ?? key;
+export function getLocale(): Locale {
+  return current;
+}
+
+export function t(key: string, vars?: Record<string, string | number>): string {
+  let str = STRINGS[current][key] ?? STRINGS.en[key] ?? key;
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      str = str.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value));
+    }
+  }
+  return str;
 }

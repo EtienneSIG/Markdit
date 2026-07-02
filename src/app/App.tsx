@@ -6,6 +6,7 @@ import { Editor } from '../components/editor/Editor';
 import { SlidesDialog } from '../components/dialogs/SlidesDialog';
 import { ConflictDialog } from '../components/dialogs/ConflictDialog';
 import { FileExplorer, type SelectedFile } from '../components/sidebar/FileExplorer';
+import { StatusBar } from '../components/statusbar/StatusBar';
 import {
   documentOpen,
   documentSaveAs,
@@ -20,7 +21,7 @@ import { DEFAULT_PRIVACY_SETTINGS, type PrivacySettings } from '../lib/types';
 import { copyMarkdownAsRichText } from '../lib/clipboard';
 import { writeFileHandle } from '../lib/folder-handle';
 import { applyTheme } from './theme';
-import { setLocale, t } from '../lib/i18n';
+import { setLocale, getLocale, t } from '../lib/i18n';
 import { configureTelemetry } from '../privacy/telemetry';
 
 type ViewMode = 'read' | 'edit';
@@ -38,6 +39,7 @@ export function App(): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [locale, setLocaleState] = useState<string>('en');
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -47,6 +49,8 @@ export function App(): JSX.Element {
       setSettings(next);
       applyTheme(next.theme);
       setLocale(next.locale);
+      setLocaleState(getLocale());
+      document.documentElement.lang = getLocale();
       configureTelemetry(next);
     })();
   }, []);
@@ -144,6 +148,18 @@ export function App(): JSX.Element {
     else setSettings((s) => ({ ...s, allowRemoteContent: true }));
   }, []);
 
+  // Toggle the UI language between English and French (FR-016). The choice is
+  // persisted to the on-device privacy profile; nothing is sent off the device.
+  const toggleLocale = useCallback(async () => {
+    const nextLocale = getLocale() === 'fr' ? 'en' : 'fr';
+    setLocale(nextLocale);
+    setLocaleState(nextLocale);
+    document.documentElement.lang = nextLocale;
+    const res = await settingsSet({ locale: nextLocale });
+    if (res.ok) setSettings(res.value);
+    else setSettings((s) => ({ ...s, locale: nextLocale }));
+  }, []);
+
   const fileLabel = filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md';
 
   return (
@@ -200,6 +216,30 @@ export function App(): JSX.Element {
         </div>
 
         <nav className="markdit-topbar-right markdit-actions" aria-label={t('app.title')}>
+          <button
+            type="button"
+            className="markdit-lang-toggle"
+            onClick={toggleLocale}
+            aria-label={t('lang.switchTo')}
+            title={t('lang.switchTo')}
+          >
+            <svg
+              className="markdit-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18" />
+              <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" />
+            </svg>
+            <span className="markdit-lang-code">{locale === 'fr' ? 'FR' : 'EN'}</span>
+          </button>
           {isTauriAvailable() && (
             <button type="button" onClick={handleOpen}>
               <svg
@@ -343,6 +383,8 @@ export function App(): JSX.Element {
         onReload={handleReloadFromDisk}
         onKeep={() => setConflictOpen(false)}
       />
+
+      <StatusBar localeTag={locale} />
     </div>
   );
 }
