@@ -20,6 +20,11 @@ jobs:
     # "do we have a signing cert?" decision as a job env var that `if:` can read.
     env:
       HAS_SIGNING_CERT: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
+    # Re-expose the same flag as a job output so the downstream signature-
+    # verification job can skip itself when installers are intentionally
+    # unsigned (no certificate configured).
+    outputs:
+      has-signing-cert: ${{ steps.cert.outputs.has-signing-cert }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +37,11 @@ jobs:
           - arch: arm64
             target: aarch64-pc-windows-msvc
     steps:
+      - name: Expose signing-cert availability
+        id: cert
+        shell: pwsh
+        run: "'has-signing-cert=' + $env:HAS_SIGNING_CERT | Out-File -FilePath $env:GITHUB_OUTPUT -Append"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -88,6 +98,9 @@ jobs:
   verify-signature:
     name: Verify installer signature (T045)
     needs: bundle
+    # Only meaningful when the installers were actually Authenticode-signed;
+    # skipped (not failed) for unsigned builds where no certificate is set.
+    if: needs.bundle.outputs.has-signing-cert == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
