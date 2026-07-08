@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Reader } from '../components/reader/Reader';
 import { RenderNotice } from '../components/reader/RenderNotice';
 import { UpdateBanner } from '../components/reader/UpdateBanner';
@@ -26,6 +26,11 @@ import { configureTelemetry } from '../privacy/telemetry';
 
 type ViewMode = 'read' | 'edit';
 
+/** Delay after the last keystroke before auto-save writes to disk. */
+const AUTOSAVE_DELAY_MS = 1000;
+/** localStorage key remembering the auto-save preference across sessions. */
+const AUTOSAVE_KEY = 'markdit.autosave';
+
 const SAMPLE = `# Welcome to Markdit\n\nOpen a \`.md\` file or start typing.\n\n- Renders like on Git\n- **Bold**, *italic*, \`code\`\n- Tables, task lists and more (GFM)\n`;
 
 export function App(): JSX.Element {
@@ -40,6 +45,20 @@ export function App(): JSX.Element {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [locale, setLocaleState] = useState<string>('en');
+
+  // Tracks unsaved edits so auto-save only writes after a genuine change and
+  // never fires spuriously when a file is (re)opened.
+  const [dirty, setDirty] = useState(false);
+  const [autosave, setAutosave] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(AUTOSAVE_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'failed'>('idle');
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -80,7 +99,10 @@ export function App(): JSX.Element {
     setConflictOpen(false);
     if (!filePath) return;
     const res = await documentOpen(filePath);
-    if (res.ok) setMarkdown(res.value.markdown);
+    if (res.ok) {
+      setMarkdown(res.value.markdown);
+      setDirty(false);
+    }
   }, [filePath]);
 
   const handleOpen = useCallback(async () => {
@@ -89,6 +111,7 @@ export function App(): JSX.Element {
       setMarkdown(res.value.markdown);
       setFilePath(res.value.path);
       setFileHandle(null);
+      setDirty(false);
     }
   }, []);
 
@@ -101,6 +124,7 @@ export function App(): JSX.Element {
       try {
         const ok = await writeFileHandle(fileHandle, markdown);
         setSaveStatus(ok ? 'saved' : 'failed');
+        if (ok) setDirty(false);
       } catch {
         setSaveStatus('failed');
       }
@@ -111,6 +135,7 @@ export function App(): JSX.Element {
     if (res.ok) {
       setFilePath(res.value.path);
       setSaveStatus('saved');
+      setDirty(false);
     } else {
       setSaveStatus('failed');
     }
@@ -121,7 +146,16 @@ export function App(): JSX.Element {
     setMarkdown(file.markdown);
     setFilePath(file.path);
     setFileHandle(file.handle ?? null);
+    setDirty(false);
     setView('read');
+  }, []);
+
+  // Editing marks the document dirty so auto-save can pick it up. TipTap only
+  // calls onChange for genuine user edits (external re-syncs don't emit), so
+  // this never fires on open/reload.
+  const handleMarkdownChange = useCallback((next: string) => {
+    setMarkdown(next);
+    setDirty(true);
   }, []);
 
   // Ctrl/Cmd+S saves the current document to disk (FR-006).
@@ -142,6 +176,95 @@ export function App(): JSX.Element {
     window.setTimeout(() => setCopyStatus('idle'), 2500);
   }, [markdown]);
 
+  const fileLabel = filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md';
+
+  // Download the current document as a `.md` file (works in both the desktop
+  // webview and the browser build).
+  const downloadMarkdown = useCallback((): string => {
+    const filename = /\.(md|markdown|mdown|mkd)$/i.test(fileLabel) ? fileLabel : `${fileLabel}.md`;
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return filename;
+  }, [markdown, fileLabel]);
+
+  const handleDownload = useCallback(() => {
+    setShareMenuOpen(false);
+    downloadMarkdown();
+  }, [downloadMarkdown]);
+
+  // Share by email. Attachments can't be set from a `mailto:` URL, so the
+  // Markdown is first downloaded (so the user can attach it), then the OS
+  // default mail client opens pre-filled — compatible with every client
+  // (Outlook, Thunderbird, Apple Mail, web handlers, …).
+  const handleShareEmail = useCallback(() => {
+    setShareMenuOpen(false);
+    try {
+      const filename = downloadMarkdown();
+      const subject = filename.replace(/\.(md|markdown|mdown|mkd)$/i, '');
+      const body = t('share.mailBody', { name: filename });
+      setShareStatus('sharing');
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      const a = document.createElement('a');
+      a.href = mailto;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => setShareStatus('idle'), 2500);
+    } catch {
+      setShareStatus('failed');
+      window.setTimeout(() => setShareStatus('idle'), 2500);
+    }
+  }, [downloadMarkdown]);
+
+  // Close the share menu on outside click or Escape.
+  useEffect(() => {
+    if (!shareMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) {
+        setShareMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShareMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [shareMenuOpen]);
+
+  // Persist the auto-save preference across sessions (on-device only).
+  useEffect(() => {
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, autosave ? '1' : '0');
+    } catch {
+      /* ignore quota/private-mode errors */
+    }
+  }, [autosave]);
+
+  // Auto-save: while editing, write to disk shortly after the user stops
+  // typing. Gated on an in-place file handle so it never pops a Save As dialog,
+  // and on `dirty` so (re)opening a file never triggers a spurious write.
+  useEffect(() => {
+    if (!autosave) return;
+    if (view !== 'edit') return;
+    if (!dirty) return;
+    if (!fileHandle) return;
+    const id = window.setTimeout(() => {
+      void handleSave();
+    }, AUTOSAVE_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [autosave, view, dirty, markdown, fileHandle, handleSave]);
+
   const enableRemote = useCallback(async () => {
     const res = await settingsSet({ allowRemoteContent: true });
     if (res.ok) setSettings(res.value);
@@ -159,8 +282,6 @@ export function App(): JSX.Element {
     if (res.ok) setSettings(res.value);
     else setSettings((s) => ({ ...s, locale: nextLocale }));
   }, []);
-
-  const fileLabel = filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md';
 
   return (
     <div className="markdit-app">
@@ -328,6 +449,116 @@ export function App(): JSX.Element {
             </svg>
             {copyStatus === 'copied' ? t('action.copied') : t('action.copy')}
           </button>
+          {(fileHandle !== null || isTauriAvailable()) && (
+            <button
+              type="button"
+              className={autosave ? 'is-active' : undefined}
+              onClick={() => setAutosave((v) => !v)}
+              aria-pressed={autosave}
+              title={autosave ? t('action.autosaveOn') : t('action.autosaveOff')}
+            >
+              <svg
+                className="markdit-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M21 12a9 9 0 1 1-3-6.7" />
+                <path d="M21 4v5h-5" />
+              </svg>
+              {t('action.autosave')}
+            </button>
+          )}
+          <div className="markdit-share" ref={shareMenuRef}>
+            <button
+              type="button"
+              className="markdit-share-toggle"
+              onClick={() => setShareMenuOpen((v) => !v)}
+              disabled={shareStatus === 'sharing'}
+              aria-haspopup="menu"
+              aria-expanded={shareMenuOpen}
+              title={t('share.title')}
+            >
+              <svg
+                className="markdit-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+              </svg>
+              {shareStatus === 'sharing'
+                ? t('share.opening')
+                : shareStatus === 'failed'
+                  ? t('share.failed')
+                  : t('share.title')}
+              <svg
+                className="markdit-icon markdit-share-caret"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            {shareMenuOpen && (
+              <div className="markdit-share-menu" role="menu">
+                <button type="button" role="menuitem" onClick={handleShareEmail}>
+                  <svg
+                    className="markdit-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="m3 7 9 6 9-6" />
+                  </svg>
+                  {t('share.email')}
+                </button>
+                <button type="button" role="menuitem" onClick={handleDownload}>
+                  <svg
+                    className="markdit-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M12 3v12" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M5 21h14" />
+                  </svg>
+                  {t('share.download')}
+                </button>
+              </div>
+            )}
+          </div>
           <button type="button" className="is-primary" onClick={() => setSlidesOpen(true)}>
             <svg
               className="markdit-icon"
@@ -365,7 +596,7 @@ export function App(): JSX.Element {
               theme={settings.theme}
             />
           ) : (
-            <Editor markdown={markdown} onChange={setMarkdown} />
+            <Editor markdown={markdown} onChange={handleMarkdownChange} />
           )}
         </main>
       </div>
