@@ -1,7 +1,7 @@
 {
   "name": "markdit",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Windows-first WYSIWYG Markdown editor with Git-fidelity rendering and lossless round-trip.",
   "license": "MIT",
