@@ -63,6 +63,9 @@ jobs:
       - name: Build & bundle signed installers
         uses: tauri-apps/tauri-action@v0
         env:
+          # Required so tauri-action can create the GitHub release and upload
+          # the installers. Backed by the workflow's `contents: write` grant.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Updater package signing (minisign) — verified fail-closed at install.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
