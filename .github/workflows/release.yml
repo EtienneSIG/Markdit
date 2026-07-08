@@ -16,6 +16,10 @@ jobs:
   bundle:
     name: Build, sign & bundle (${{ matrix.arch }})
     runs-on: windows-latest
+    # `secrets` cannot be referenced from a step-level `if:`, so surface the
+    # "do we have a signing cert?" decision as a job env var that `if:` can read.
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -46,7 +50,7 @@ jobs:
       # For an HSM / Azure Trusted Signing backend, replace this step with the
       # provider's signing action and point tauri at it via `signCommand`.
       - name: Import code-signing certificate
-        if: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
+        if: env.HAS_SIGNING_CERT == 'true'
         shell: pwsh
         run: |
           $pfx = [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
