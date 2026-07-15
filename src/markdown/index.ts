@@ -8,6 +8,12 @@ export { renderHtml, type RenderOptions } from './render';
 export { sanitizeSchema } from './sanitize';
 export { highlightCode } from './highlight';
 export {
+  renderMermaid,
+  mermaidThemeFor,
+  type MermaidTheme,
+  type MermaidRenderResult,
+} from './mermaid';
+export {
   mdastToProseMirror,
   proseMirrorToMdast,
   type ProseMirrorDoc,

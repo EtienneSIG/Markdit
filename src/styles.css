@@ -684,6 +684,26 @@ a:focus-visible,
   padding: 0;
 }
 
+.markdit-mermaid {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  overflow-x: auto;
+}
+
+.markdit-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdit-mermaid-error {
+  border-color: var(--danger, #d13438);
+  position: relative;
+}
+
 .markdit-reader blockquote,
 .markdit-editor blockquote {
   margin: 1rem 0;

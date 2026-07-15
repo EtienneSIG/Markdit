@@ -50,6 +50,7 @@ const STRINGS: Record<Locale, Dict> = {
     'notice.enableRemote': 'Enable remote content',
     'notice.largeFile':
       'This file is large; syntax highlighting is disabled to keep it responsive.',
+    'mermaid.error': 'This Mermaid diagram could not be rendered; showing its source.',
     'update.available': 'A new version of Markdit is available.',
     'update.availableVersion': 'Markdit {version} is available.',
     'update.install': 'Update now',
@@ -141,6 +142,7 @@ const STRINGS: Record<Locale, Dict> = {
     'notice.enableRemote': 'Activer le contenu distant',
     'notice.largeFile':
       'Ce fichier est volumineux ; la coloration syntaxique est désactivée pour rester réactif.',
+    'mermaid.error': 'Ce diagramme Mermaid n’a pas pu être affiché ; sa source est montrée.',
     'update.available': 'Une nouvelle version de Markdit est disponible.',
     'update.availableVersion': 'Markdit {version} est disponible.',
     'update.install': 'Mettre à jour',
