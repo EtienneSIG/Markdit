@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { isTauriAvailable, documentOpen } from '../../lib/ipc';
-import { loadFolders, saveFolders, clearFolders } from '../../lib/folder-handle';
+import { saveFolders, clearFolders } from '../../lib/folder-handle';
+import { isDesktopShell, readFileByPath } from '../../lib/desktop';
+import { addRecent, getRecentHandle, type RecentItem } from '../../lib/recent';
 import { t } from '../../lib/i18n';
 
 /** Sidebar width bounds (px) and persistence key for the resize handle. */
@@ -35,6 +37,15 @@ export interface SelectedFile {
 export interface FileExplorerProps {
   activePath: string | null;
   onOpenFile: (file: SelectedFile) => void;
+  /** Hide the sidebar while keeping it mounted (so the File menu can drive it). */
+  collapsed?: boolean;
+}
+
+/** Imperative surface the File menu uses to drive the sidebar. */
+export interface FileExplorerHandle {
+  openFolder: () => void;
+  openFiles: () => void;
+  openRecent: (item: RecentItem) => Promise<void>;
 }
 
 const MD_EXT = /\.(md|markdown|mdown|mkd)$/i;
@@ -178,12 +189,13 @@ function RootSection({ root, activePath, onSelect, onRemove }: RootSectionProps)
  * files (multi-root workspace). When running without the File System Access
  * API, falls back to the native Tauri open dialog.
  */
-export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX.Element {
+export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(function FileExplorer(
+  { activePath, onOpenFile, collapsed = false },
+  ref,
+): JSX.Element {
   const [roots, setRoots] = useState<WorkspaceRoot[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Remembered folders awaiting a user gesture to re-grant read permission. */
-  const [pendingFolders, setPendingFolders] = useState<FileSystemDirectoryHandle[]>([]);
 
   /** User-adjustable sidebar width (px), restored from the previous session. */
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -267,7 +279,7 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
         persistFolders(next);
         return next;
       });
-      setPendingFolders((p) => p.filter((h) => h.name !== dir.name));
+      void addRecent({ name: dir.name, kind: 'folder' }, dir);
     },
     [persistFolders],
   );
@@ -302,6 +314,9 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
         handle: h,
         path: `files/${h.name}`,
       }));
+      for (const h of handles) {
+        void addRecent({ name: h.name, kind: 'file', path: `files/${h.name}` }, h);
+      }
       setRoots((prev) => {
         const existing = prev.find((r) => r.id === 'files');
         const mergedNodes = existing
@@ -335,17 +350,13 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     [persistFolders],
   );
 
-  /** Re-grant access to a remembered folder (requires a user gesture). */
-  const reopenFolder = useCallback(
+  /** Re-grant access to a remembered folder handle, then add it as a root. */
+  const reopenFolderHandle = useCallback(
     async (dir: FileSystemDirectoryHandle) => {
       setError(null);
       try {
         const granted = (await dir.requestPermission?.({ mode: 'readwrite' })) ?? 'granted';
-        if (granted === 'granted') {
-          await addFolderRoot(dir);
-        } else {
-          setPendingFolders((p) => p.filter((h) => h.name !== dir.name));
-        }
+        if (granted === 'granted') await addFolderRoot(dir);
       } catch (err) {
         setError(String(err));
       }
@@ -353,39 +364,16 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
     [addFolderRoot],
   );
 
-  // Restore remembered folders on mount. Folders the browser still grants are
-  // loaded immediately; those needing a fresh gesture surface a one-click
-  // "reopen" prompt; the rest are forgotten.
-  useEffect(() => {
-    if (!canPickDirectory) return;
-    let cancelled = false;
-    void (async () => {
-      const dirs = await loadFolders();
-      if (cancelled || dirs.length === 0) return;
-      for (const dir of dirs) {
-        const state = (await dir.queryPermission?.({ mode: 'readwrite' })) ?? 'prompt';
-        if (cancelled) return;
-        if (state === 'granted') {
-          try {
-            await addFolderRoot(dir);
-          } catch {
-            if (!cancelled) setPendingFolders((p) => [...p, dir]);
-          }
-        } else if (state === 'prompt') {
-          setPendingFolders((p) => [...p, dir]);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [canPickDirectory, addFolderRoot]);
+  // Note: opened folders are intentionally NOT restored automatically on
+  // startup (they only reopen on demand from the File menu's recent list), so a
+  // launch — including via a file association — never re-reads the last folder.
 
   /** Fallback open via the native Tauri dialog (no File System Access API). */
   const openSingleFile = useCallback(async () => {
     const res = await documentOpen();
     if (res.ok) {
       onOpenFile({ name: res.value.fileName, path: res.value.path, markdown: res.value.markdown });
+      void addRecent({ name: res.value.fileName, kind: 'file', path: res.value.path });
     }
   }, [onOpenFile]);
 
@@ -396,11 +384,57 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
         const file = await node.handle.getFile();
         const markdown = await file.text();
         onOpenFile({ name: node.name, path: node.path, markdown, handle: node.handle });
+        void addRecent({ name: node.name, kind: 'file', path: node.path }, node.handle);
       } catch (err) {
         setError(String(err));
       }
     },
     [onOpenFile],
+  );
+
+  /** Reopen a recent item (folder or file) from the File menu. */
+  const openRecent = useCallback(
+    async (item: RecentItem) => {
+      setError(null);
+      const handle = await getRecentHandle(item.id);
+      if (item.kind === 'folder') {
+        if (handle && handle.kind === 'directory') {
+          await reopenFolderHandle(handle as FileSystemDirectoryHandle);
+        }
+        return;
+      }
+      // File: prefer the browser handle; otherwise reopen by native path.
+      if (handle && handle.kind === 'file') {
+        const fh = handle as FileSystemFileHandle;
+        try {
+          const granted = (await fh.requestPermission?.({ mode: 'readwrite' })) ?? 'granted';
+          if (granted !== 'granted') return;
+          const file = await fh.getFile();
+          const markdown = await file.text();
+          onOpenFile({ name: fh.name, path: item.path ?? `files/${fh.name}`, markdown, handle: fh });
+          void addRecent({ name: fh.name, kind: 'file', path: item.path ?? `files/${fh.name}` }, fh);
+        } catch (err) {
+          setError(String(err));
+        }
+        return;
+      }
+      if (item.path && isDesktopShell()) {
+        try {
+          const doc = await readFileByPath(item.path);
+          onOpenFile({ name: doc.fileName, path: doc.path, markdown: doc.markdown });
+          void addRecent({ name: doc.fileName, kind: 'file', path: doc.path });
+        } catch (err) {
+          setError(String(err));
+        }
+      }
+    },
+    [onOpenFile, reopenFolderHandle],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({ openFolder, openFiles, openRecent }),
+    [openFolder, openFiles, openRecent],
   );
 
   /** Re-read every opened folder from disk to pick up added/removed files. */
@@ -435,7 +469,7 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
       ref={navRef}
       className="markdit-sidebar"
       aria-label={t('sidebar.title')}
-      style={{ width: `${sidebarWidth}px` }}
+      style={{ width: `${sidebarWidth}px`, ...(collapsed ? { display: 'none' } : null) }}
     >
       <div className="markdit-sidebar-header">
         <strong>{t('sidebar.files')}</strong>
@@ -485,17 +519,6 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
         </div>
       </div>
 
-      {pendingFolders.map((dir) => (
-        <button
-          key={`pending:${dir.name}`}
-          type="button"
-          className="markdit-sidebar-reopen"
-          onClick={() => reopenFolder(dir)}
-        >
-          {t('sidebar.reopen').replace('{name}', dir.name)}
-        </button>
-      ))}
-
       {hasContent ? (
         <div className="markdit-sidebar-body">
           <ul className="markdit-tree markdit-tree--roots" role="tree" aria-label={t('sidebar.files')}>
@@ -540,4 +563,4 @@ export function FileExplorer({ activePath, onOpenFile }: FileExplorerProps): JSX
       />
     </nav>
   );
-}
+});

@@ -22,6 +22,26 @@ fn hash(content: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+/// True when the argument looks like an existing Markdown file we should open.
+/// Used to pick the target out of the raw command line passed by Windows when a
+/// `.md` file is double-clicked or "Open with Markdit" is used.
+pub fn is_markdown_path(arg: &str) -> bool {
+    let lower = arg.to_ascii_lowercase();
+    let has_ext = lower.ends_with(".md")
+        || lower.ends_with(".markdown")
+        || lower.ends_with(".mdown")
+        || lower.ends_with(".mkd");
+    has_ext && Path::new(arg).is_file()
+}
+
+/// Return the first Markdown file path passed on the command line (file
+/// association / "Open with"), if any. The frontend calls this once on startup
+/// so a double-clicked file opens automatically. Never opens a folder.
+#[tauri::command]
+pub fn document_startup_file() -> Option<String> {
+    std::env::args().skip(1).find(|a| is_markdown_path(a))
+}
+
 /// Open and read a Markdown file as UTF-8.
 #[tauri::command]
 pub fn document_open(path: String) -> CommandResult<OpenedDocument> {

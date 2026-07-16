@@ -1,6 +1,6 @@
 [package]
 name = "markdit"
-version = "0.5.0"
+version = "0.6.0"
 description = "Markdit — a local-first, standards-based Markdown editor"
 authors = ["Etienne Sigwald"]
 edition = "2021"
@@ -19,6 +19,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-updater = "2"
+tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Reader } from '../components/reader/Reader';
 import { RenderNotice } from '../components/reader/RenderNotice';
 import { UpdateBanner } from '../components/reader/UpdateBanner';
-import { Editor } from '../components/editor/Editor';
-import { SlidesDialog } from '../components/dialogs/SlidesDialog';
 import { ConflictDialog } from '../components/dialogs/ConflictDialog';
-import { FileExplorer, type SelectedFile } from '../components/sidebar/FileExplorer';
+import {
+  FileExplorer,
+  type SelectedFile,
+  type FileExplorerHandle,
+} from '../components/sidebar/FileExplorer';
+import { FileMenu } from '../components/toolbar/FileMenu';
 import { StatusBar } from '../components/statusbar/StatusBar';
 import {
   documentOpen,
@@ -17,12 +20,29 @@ import {
   settingsGet,
   settingsSet,
 } from '../lib/ipc';
+import {
+  getStartupFile,
+  registerOpenFileHandler,
+  readFileByPath,
+  writeFileByPath,
+  isDesktopShell,
+} from '../lib/desktop';
+import { addRecent, type RecentItem } from '../lib/recent';
 import { DEFAULT_PRIVACY_SETTINGS, type PrivacySettings } from '../lib/types';
 import { copyMarkdownAsRichText } from '../lib/clipboard';
 import { writeFileHandle } from '../lib/folder-handle';
 import { applyTheme } from './theme';
 import { setLocale, getLocale, t } from '../lib/i18n';
 import { configureTelemetry } from '../privacy/telemetry';
+
+// Heavy views are code-split so first paint (the read view) stays fast: TipTap
+// (the WYSIWYG editor) and Marp (the slide generator) only load on demand.
+const Editor = lazy(() =>
+  import('../components/editor/Editor').then((m) => ({ default: m.Editor })),
+);
+const SlidesDialog = lazy(() =>
+  import('../components/dialogs/SlidesDialog').then((m) => ({ default: m.SlidesDialog })),
+);
 
 type ViewMode = 'read' | 'edit';
 
@@ -105,16 +125,6 @@ export function App(): JSX.Element {
     }
   }, [filePath]);
 
-  const handleOpen = useCallback(async () => {
-    const res = await documentOpen();
-    if (res.ok) {
-      setMarkdown(res.value.markdown);
-      setFilePath(res.value.path);
-      setFileHandle(null);
-      setDirty(false);
-    }
-  }, []);
-
   const handleSave = useCallback(async () => {
     // Prefer saving in place to the file opened from the sidebar (File System
     // Access API). Fall back to the desktop Save As dialog when no handle is
@@ -131,6 +141,16 @@ export function App(): JSX.Element {
       window.setTimeout(() => setSaveStatus('idle'), 2500);
       return;
     }
+    // A file opened by absolute path (file association) has no browser handle;
+    // write it back in place through the desktop core.
+    if (filePath && isDesktopShell()) {
+      setSaveStatus('saving');
+      const ok = await writeFileByPath(filePath, markdown);
+      setSaveStatus(ok ? 'saved' : 'failed');
+      if (ok) setDirty(false);
+      window.setTimeout(() => setSaveStatus('idle'), 2500);
+      return;
+    }
     const res = await documentSaveAs(markdown);
     if (res.ok) {
       setFilePath(res.value.path);
@@ -140,7 +160,7 @@ export function App(): JSX.Element {
       setSaveStatus('failed');
     }
     window.setTimeout(() => setSaveStatus('idle'), 2500);
-  }, [markdown, fileHandle]);
+  }, [markdown, fileHandle, filePath]);
 
   const handleOpenFromSidebar = useCallback((file: SelectedFile) => {
     setMarkdown(file.markdown);
@@ -148,6 +168,59 @@ export function App(): JSX.Element {
     setFileHandle(file.handle ?? null);
     setDirty(false);
     setView('read');
+  }, []);
+
+  // Imperative access to the sidebar so the File menu can open files/folders and
+  // reopen recent items even while the sidebar is collapsed.
+  const fileExplorerRef = useRef<FileExplorerHandle>(null);
+
+  /**
+   * Open a Markdown file by absolute OS path (Windows file association /
+   * "Open with Markdit"). Reads through the desktop core; a no-op in the web
+   * build. The document is loaded without a browser handle — saving falls back
+   * to writing the same path (see handleSave).
+   */
+  const openByPath = useCallback(async (path: string) => {
+    if (!isDesktopShell()) return;
+    try {
+      const doc = await readFileByPath(path);
+      setMarkdown(doc.markdown);
+      setFilePath(doc.path);
+      setFileHandle(null);
+      setDirty(false);
+      setView('read');
+      void addRecent({ name: doc.fileName, kind: 'file', path: doc.path });
+    } catch {
+      /* File missing or unreadable — leave the current document in place. */
+    }
+  }, []);
+
+  // On startup, open a file passed on the command line (file association). The
+  // last folder is deliberately never reopened here (handled in FileExplorer).
+  useEffect(() => {
+    void (async () => {
+      const path = await getStartupFile();
+      if (path) void openByPath(path);
+    })();
+  }, [openByPath]);
+
+  // Route files opened while Markdit is already running (a second launch is
+  // funnelled to this window by the single-instance guard) into the editor.
+  useEffect(() => registerOpenFileHandler((path) => void openByPath(path)), [openByPath]);
+
+  // File menu actions. Opening anything also reveals the sidebar so the result
+  // is visible.
+  const handleMenuOpenFile = useCallback(() => {
+    setSidebarCollapsed(false);
+    fileExplorerRef.current?.openFiles();
+  }, []);
+  const handleMenuOpenFolder = useCallback(() => {
+    setSidebarCollapsed(false);
+    fileExplorerRef.current?.openFolder();
+  }, []);
+  const handleMenuOpenRecent = useCallback((item: RecentItem) => {
+    setSidebarCollapsed(false);
+    void fileExplorerRef.current?.openRecent(item);
   }, []);
 
   // Editing marks the document dirty so auto-save can pick it up. TipTap only
@@ -252,18 +325,19 @@ export function App(): JSX.Element {
   }, [autosave]);
 
   // Auto-save: while editing, write to disk shortly after the user stops
-  // typing. Gated on an in-place file handle so it never pops a Save As dialog,
-  // and on `dirty` so (re)opening a file never triggers a spurious write.
+  // typing. Gated on an in-place target (a browser handle, or a native path
+  // opened via file association) so it never pops a Save As dialog, and on
+  // `dirty` so (re)opening a file never triggers a spurious write.
   useEffect(() => {
     if (!autosave) return;
     if (view !== 'edit') return;
     if (!dirty) return;
-    if (!fileHandle) return;
+    if (!fileHandle && !(filePath && isDesktopShell())) return;
     const id = window.setTimeout(() => {
       void handleSave();
     }, AUTOSAVE_DELAY_MS);
     return () => window.clearTimeout(id);
-  }, [autosave, view, dirty, markdown, fileHandle, handleSave]);
+  }, [autosave, view, dirty, markdown, fileHandle, filePath, handleSave]);
 
   const enableRemote = useCallback(async () => {
     const res = await settingsSet({ allowRemoteContent: true });
@@ -361,25 +435,12 @@ export function App(): JSX.Element {
             </svg>
             <span className="markdit-lang-code">{locale === 'fr' ? 'FR' : 'EN'}</span>
           </button>
-          {isTauriAvailable() && (
-            <button type="button" onClick={handleOpen}>
-              <svg
-                className="markdit-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              </svg>
-              {t('action.open')}
-            </button>
-          )}
-          {(fileHandle !== null || isTauriAvailable()) && (
+          <FileMenu
+            onOpenFile={handleMenuOpenFile}
+            onOpenFolder={handleMenuOpenFolder}
+            onOpenRecent={handleMenuOpenRecent}
+          />
+          {(fileHandle !== null || (filePath !== null && isDesktopShell()) || isTauriAvailable()) && (
             <button
               type="button"
               onClick={handleSave}
@@ -584,9 +645,12 @@ export function App(): JSX.Element {
       <RenderNotice blockedCount={blockedCount} onEnableRemote={enableRemote} />
 
       <div className="markdit-body">
-        {!sidebarCollapsed && (
-          <FileExplorer activePath={filePath} onOpenFile={handleOpenFromSidebar} />
-        )}
+        <FileExplorer
+          ref={fileExplorerRef}
+          activePath={filePath}
+          onOpenFile={handleOpenFromSidebar}
+          collapsed={sidebarCollapsed}
+        />
 
         <main className="markdit-main">
           {view === 'read' ? (
@@ -596,17 +660,23 @@ export function App(): JSX.Element {
               theme={settings.theme}
             />
           ) : (
-            <Editor markdown={markdown} onChange={handleMarkdownChange} />
+            <Suspense fallback={null}>
+              <Editor markdown={markdown} onChange={handleMarkdownChange} />
+            </Suspense>
           )}
         </main>
       </div>
 
-      <SlidesDialog
-        open={slidesOpen}
-        markdown={markdown}
-        fileName={fileLabel}
-        onClose={() => setSlidesOpen(false)}
-      />
+      {slidesOpen && (
+        <Suspense fallback={null}>
+          <SlidesDialog
+            open={slidesOpen}
+            markdown={markdown}
+            fileName={fileLabel}
+            onClose={() => setSlidesOpen(false)}
+          />
+        </Suspense>
+      )}
 
       <ConflictDialog
         open={conflictOpen}

@@ -284,6 +284,109 @@ body {
   width: 100%;
 }
 
+/* File menu (open file / folder / recent items) */
+.markdit-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.markdit-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.markdit-menu-toggle:hover {
+  background: var(--surface-hover);
+}
+
+.markdit-menu-caret {
+  width: 14px;
+  height: 14px;
+  opacity: 0.75;
+}
+
+.markdit-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 240px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.markdit-menu-panel button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  width: 100%;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.markdit-menu-panel button:hover {
+  background: var(--surface-hover);
+}
+
+.markdit-menu-recent-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdit-menu-sep {
+  height: 1px;
+  margin: 0.25rem 0.15rem;
+  background: var(--border);
+}
+
+.markdit-menu-heading {
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.markdit-menu-empty {
+  margin: 0;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.markdit-menu-clear {
+  color: var(--muted) !important;
+  font-size: 0.85rem;
+}
+
 .markdit-icon {
   width: 16px;
   height: 16px;
