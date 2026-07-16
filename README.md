@@ -1,141 +1,158 @@
 # Markdit
 
-Markdit is a Windows-first **WYSIWYG Markdown editor** that lets you read and
-edit Markdown documents without writing Markdown syntax by hand. The look and
-feel takes cues from Microsoft Loop, with a Word-like formatting ribbon.
+**Markdown should feel like a document, not a syntax exercise.** Markdit is a
+Windows-first, local-first WYSIWYG Markdown editor for people who want the
+portability of `.md` files with the comfort of a polished writing app.
 
-## Screenshots
+Open a Markdown file, read it like GitHub would render it, switch to visual
+editing when you need to write, then copy, share, or turn the same document into
+slides. No proprietary format. No cloud account. No lock-in.
 
-**Read mode** — open `.md` files and read them rendered with GitHub-Flavored
-Markdown fidelity, in a clean document card with a collapsible file sidebar. A
-language toggle (English / French) sits in the top bar and a status bar in the
-bottom-right shows the license, version, and update-check state.
+[**Download the latest release**](https://github.com/EtienneSIG/Markdit/releases/latest)
 
-![Markdit in Read mode](docs/screenshots/read-view.png)
+## Table of contents
 
-**Edit mode** — a Word-like formatting ribbon (Font, Paragraph, Insert, Table)
-drives a WYSIWYG editor while the underlying file stays portable, clean Markdown.
+- [See it in action](#see-it-in-action)
+- [Why Markdit](#why-markdit)
+- [Download](#download)
+- [Core capabilities](#core-capabilities)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Spec-driven and compliance-aware](#spec-driven-and-compliance-aware)
+- [License](#license)
 
-![Markdit in Edit mode with the formatting ribbon](docs/screenshots/edit-view.png)
+## See it in action
 
-**Slides** — turn the active document into a [Marp](https://marp.app/) deck
-(`marp: true` front-matter, selectable theme, pagination) with a live preview,
-then copy the Markdown, save it, or export a self-contained HTML deck.
+### Read Markdown like a finished document
 
-## Capabilities
+![Markdit read mode in full screen](docs/screenshots/read-view.png)
 
-1. **Read Markdown like on Git** — open `.md` files and see them rendered with
-   GitHub-Flavored Markdown fidelity (tables, task lists, fenced code, etc.).
-2. **Visual editing without Markdown** — Word-like formatting ribbon and styles;
-   the underlying file stays clean, portable Markdown.
-3. **Collapsible navigation** — a burger toggle shows/hides the file sidebar so
-   the document can use the full width. The last opened folder is remembered and
-   restored on the next launch.
-4. **Installable on Windows** — signed installer with clean updates/uninstall.
-5. **Copy** — copy the document as rich text (with a Markdown fallback) to paste
-   into other apps.
-6. **Slides** — generate a Marp deck from the document, preview it, switch the
-   theme, and export it as self-contained HTML — all on-device.
-7. **Bilingual UI** — switch the interface between English and French from the
-   top bar; the choice is saved locally and nothing is sent off the device.
+Markdit renders GitHub-Flavored Markdown cleanly: headings, tables, task lists,
+code blocks, links, local images, and Mermaid diagrams are shown in a focused
+document view with a file sidebar and bilingual UI.
+
+### Edit visually, keep real Markdown
+
+![Markdit edit mode with the formatting ribbon](docs/screenshots/edit-view.png)
+
+The Word-like ribbon gives writers familiar controls for formatting, lists,
+quotes, code blocks, and tables. Under the hood, the file remains clean,
+portable Markdown that still belongs in Git.
+
+### Turn notes into slides
+
+![Markdit slide export dialog in full screen](docs/screenshots/slides-view.png)
+
+The active document can become a Marp slide deck with live preview, selectable
+theme, Markdown copy/download, and self-contained HTML export - all on-device.
+
+## Why Markdit
+
+| Need | Markdit answer |
+| --- | --- |
+| Read `.md` files without raw syntax | GitHub-Flavored Markdown rendering with a clean document surface |
+| Write without memorizing Markdown | WYSIWYG editor with a familiar formatting ribbon |
+| Keep files portable | Markdown stays the source of truth; no proprietary project format |
+| Share quickly | Copy as rich text, download Markdown, or export HTML slides |
+| Work privately | Local-first defaults, remote content blocked by default, telemetry off until consent |
+| Ship responsibly | Accessibility, privacy, security, SBOM, and compliance work tracked in the repo |
 
 ## Download
 
-Grab the latest Windows build from the
-[**Releases** page](https://github.com/EtienneSIG/Markdit/releases/latest):
+Get the newest Windows build from the
+[**Releases** page](https://github.com/EtienneSIG/Markdit/releases/latest).
 
-- **`Markdit_<version>_x64-setup.exe`** — recommended installer (per-user, no
-  admin rights, clean updates and uninstall).
-- **`Markdit_<version>_x64_en-US.msi`** — Windows Installer package.
-- **`markdit.exe`** — standalone portable executable (no installation).
+Choose the package that fits your workflow:
 
-Windows 11 already ships the required WebView2 runtime; on Windows 10 the
-installer fetches it automatically if needed.
-
-> First launch shows a Microsoft Defender SmartScreen warning because the
-> installer is not signed with a paid certificate. See the step-by-step,
-> illustrated [installation guide](docs/INSTALL.md) to install it safely.
-
-## Regulatory compliance
-
-Markdit targets EU and North American markets and is held to GDPR, the European
-Accessibility Act / EN 301 549, the Cyber Resilience Act, CCPA/CPRA, ADA /
-Section 508, PIPEDA, and related requirements. Dedicated compliance agents audit
-the project **a posteriori** and maintain a remediation backlog. See
-[compliance/backlog/README.md](compliance/backlog/README.md).
-
-## Development with Spec Kit
-
-This project uses [GitHub Spec Kit](https://github.com/github/spec-kit) for
-Spec-Driven Development. Use the slash commands in GitHub Copilot Chat:
-
-| Command | Purpose |
+| Package | Best for |
 | --- | --- |
-| `/speckit.constitution` | Project governing principles (`.specify/memory/constitution.md`) |
-| `/speckit.specify` | Define what to build |
-| `/speckit.clarify` | De-risk ambiguous requirements |
-| `/speckit.plan` | Technical implementation plan |
-| `/speckit.tasks` | Generate actionable tasks |
-| `/speckit.analyze` | Cross-artifact consistency check |
-| `/speckit.implement` | Execute the plan |
-| `/markdit.compliance.eu` | EU regulatory audit → compliance backlog |
-| `/markdit.compliance.na` | North American regulatory audit → compliance backlog |
-| `/markdit.compliance.audit` | Run both audits, consolidate, and give a release verdict |
+| `Markdit_<version>_x64-setup.exe` | Recommended per-user installer, no admin rights required |
+| `Markdit_<version>_x64_en-US.msi` | Standard Windows Installer deployment |
+| `markdit.exe` | Portable executable, no installation |
 
-### Key artifacts
+Windows 11 already includes the required WebView2 runtime. On Windows 10, the
+installer fetches it automatically when needed.
 
-- Constitution: [.specify/memory/constitution.md](.specify/memory/constitution.md)
-- Core feature spec: [specs/001-markdit-core/spec.md](specs/001-markdit-core/spec.md)
-- Compliance agents: [.github/agents/](.github/agents)
+> First launch may show a Microsoft Defender SmartScreen warning because the
+> installer is not signed with a paid certificate. Follow the illustrated
+> [installation guide](docs/INSTALL.md) to install it safely.
+
+## Core capabilities
+
+1. **Reader mode** - open Markdown and get a polished, Git-compatible reading
+   experience.
+2. **Visual editing** - format content with a ribbon while Markdit preserves
+   clean Markdown.
+3. **File navigation** - open files or folders, browse Markdown documents, and
+   collapse the sidebar for a wider writing surface.
+4. **Rich copy and sharing** - copy rendered content with Markdown fallback,
+   download the current file, or prepare an email handoff.
+5. **Slide generation** - create Marp-compatible decks from the current
+   document and export self-contained HTML.
+6. **Bilingual UI** - switch between English and French from the top bar.
+7. **Privacy-first defaults** - local files stay local; telemetry and remote
+   content require explicit consent.
 
 ## Architecture
 
-Markdit is a Tauri 2 desktop app. The **Markdown engine is the single source of
-truth** and lives entirely in the TypeScript frontend; the Rust core handles only
-local file I/O, settings persistence, signed updates, and file watching.
+Markdit is a Tauri 2 desktop app. The Markdown engine is the single source of
+truth in the TypeScript frontend; the Rust core focuses on local file I/O,
+settings persistence, signed updates, and file watching.
 
-- **Rust core** (`src-tauri/`): file open/save with content-hash conflict
-  detection, privacy-first settings store, signed updates, and file watching.
-- **Frontend** (`src/`):
-  - `markdown/` — `unified` + `remark` (CommonMark + GFM) parse/serialize,
-    `rehype-sanitize` rendering, Shiki highlighting, and the TipTap ⇄ mdast
-    bridge. This is the constitutional heart and is covered by the round-trip
-    corpus and unit tests.
-  - `components/` — reader, TipTap WYSIWYG editor, accessible toolbar, source view.
-  - `slides/` — Marp deck generation and rendering via `@marp-team/marp-core`.
-  - `privacy/` — consent state machine, opt-in telemetry, data-subject rights.
+| Area | Responsibility |
+| --- | --- |
+| `src-tauri/` | Native desktop shell, file open/save, settings, updates, file watching |
+| `src/markdown/` | CommonMark/GFM parsing, serialization, sanitised rendering, syntax highlighting |
+| `src/components/` | Reader, TipTap WYSIWYG editor, toolbar, sidebar, status bar |
+| `src/slides/` | Marp deck generation, preview, Markdown/HTML export |
+| `src/privacy/` | Consent state, opt-in telemetry, privacy controls |
 
 ## Development
 
-Prerequisites: Node 20+ and (for the desktop build) the Rust toolchain + Tauri
-prerequisites.
+Prerequisites: Node 20+ and, for the desktop build, the Rust toolchain with the
+Tauri prerequisites.
 
 ```powershell
-npm install            # install frontend dependencies
-npm run test           # Vitest unit + golden-file round-trip corpus
-npm run lint           # ESLint
-npm run dev            # Vite dev server (web surface)
-npm run tauri dev      # full desktop app (requires Rust/Tauri toolchain)
-npm run build          # production frontend build
-npm run sbom           # generate a CycloneDX SBOM (sbom/markdit-sbom.json)
+npm install
+npm run test
+npm run lint
+npm run dev
+npm run tauri dev
+npm run build
+npm run sbom
 ```
 
-End-to-end and accessibility suites use Playwright + axe-core
-(`npm run test:e2e`, `npm run test:a11y`).
+End-to-end and accessibility suites use Playwright and axe-core:
 
-To refresh the golden round-trip corpus after an intentional engine change:
+```powershell
+npm run test:e2e
+npm run test:a11y
+```
+
+To refresh the golden round-trip corpus after an intentional Markdown engine
+change:
 
 ```powershell
 node scripts/generate-corpus.mjs
 ```
 
-Markdit is **local-first**. On first run telemetry is off, remote content is
-blocked, and no cloud consents exist. Nothing leaves the device without an
-explicit, recorded consent. The UI targets **WCAG 2.2 AA** (keyboard-navigable,
-visible focus, high-contrast theme). See [SECURITY.md](SECURITY.md) for the
-security model, signing, SBOM, and vulnerability disclosure process.
+## Spec-driven and compliance-aware
+
+Markdit uses [GitHub Spec Kit](https://github.com/github/spec-kit) for
+spec-driven development. Key project artifacts:
+
+| Artifact | Link |
+| --- | --- |
+| Constitution | [.specify/memory/constitution.md](.specify/memory/constitution.md) |
+| Core feature spec | [specs/001-markdit-core/spec.md](specs/001-markdit-core/spec.md) |
+| Compliance agents | [.github/agents/](.github/agents) |
+| Compliance backlog | [compliance/backlog/README.md](compliance/backlog/README.md) |
+
+The project tracks GDPR, European Accessibility Act / EN 301 549, Cyber
+Resilience Act, CCPA/CPRA, ADA / Section 508, PIPEDA, and related requirements.
+See [SECURITY.md](SECURITY.md) for the security model, signing, SBOM, and
+vulnerability disclosure process.
 
 ## License
 
 Markdit is released under the [MIT License](LICENSE) © 2026 Etienne Sigwald.
-
