@@ -1,6 +1,8 @@
 import type { Editor } from '@tiptap/react';
+import { useRef } from 'react';
 import { FORMATTING_ACTIONS } from './actions';
 import type { FormattingActionId } from '../../lib/types';
+import { blobToDataUrl, isImageFile } from '../../lib/image';
 import { t } from '../../lib/i18n';
 
 export interface ToolbarProps {
@@ -306,6 +308,62 @@ function TableControls({ editor }: { editor: Editor | null }): JSX.Element {
 }
 
 /**
+ * "Insert image" control. Picks a local image and embeds it as a base64 data
+ * URI so the Markdown stays portable — nothing is uploaded (Principle III).
+ */
+function ImageButton({ editor }: { editor: Editor | null }): JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const label = t('action.insertImage');
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file || !editor || !isImageFile(file)) return;
+    try {
+      const src = await blobToDataUrl(file);
+      editor.chain().focus().setImage({ src, alt: file.name }).run();
+    } catch {
+      /* Ignore unreadable images. */
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        title={label}
+        aria-label={label}
+        disabled={!editor}
+        onClick={() => inputRef.current?.click()}
+      >
+        <svg
+          className="markdit-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <circle cx="8.5" cy="9.5" r="1.5" />
+          <path d="m21 16-5-5L5 20" />
+        </svg>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => void onPick(e)}
+      />
+    </>
+  );
+}
+
+/**
  * Accessible formatting ribbon (US2, FR-004, Principle IV). A single
  * `role="toolbar"` groups portable Markdown controls into Word-like sections;
  * every control maps to a documented, portable Markdown construct.
@@ -339,6 +397,7 @@ export function Toolbar({ editor }: ToolbarProps): JSX.Element {
                 </button>
               );
             })}
+            {group.labelKey === 'ribbon.group.insert' && <ImageButton editor={editor} />}
           </div>
           <span className="markdit-ribbon-label" aria-hidden="true">
             {t(group.labelKey)}

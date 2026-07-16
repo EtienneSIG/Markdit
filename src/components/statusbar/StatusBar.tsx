@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { updaterCheck, updaterInstall, isTauriAvailable } from '../../lib/ipc';
+import { isDesktopShell, openExternal } from '../../lib/desktop';
+import { checkForUpdate } from '../../lib/update';
 import { t } from '../../lib/i18n';
 
 type CheckState =
@@ -13,31 +14,34 @@ type CheckState =
 /**
  * Bottom-right status bar (inspired by the Wiki viewer footer). Surfaces the
  * open-source license and the app version, plus an interactive update-check
- * indicator: click to (re-)check on demand, and when a signed update is offered
- * a highlighted badge appears that installs it. The check only reaches out
- * under the desktop runtime; in the web build it reports "unavailable" without
- * contacting any server (Principle III).
+ * indicator: click to (re-)check on demand, and when a newer release exists a
+ * highlighted badge appears that opens the download page. The check only reaches
+ * out under the desktop runtime, querying nothing but GitHub's public release
+ * list; in the web build it reports "unavailable" without contacting any server
+ * (Principle III).
  *
  * `localeTag` is threaded in so the labels re-render when the language changes.
  */
 export function StatusBar({ localeTag }: { localeTag: string }): JSX.Element {
   const [check, setCheck] = useState<CheckState>('idle');
   const [version, setVersion] = useState<string | undefined>(undefined);
+  const [releaseUrl, setReleaseUrl] = useState<string | undefined>(undefined);
   void localeTag;
 
   const runCheck = useCallback(async () => {
-    if (!isTauriAvailable()) {
+    if (!isDesktopShell()) {
       setCheck('unavailable');
       return;
     }
     setCheck('checking');
-    const res = await updaterCheck();
-    if (!res.ok) {
+    const info = await checkForUpdate(__APP_VERSION__);
+    if (!info) {
       setCheck('unavailable');
       return;
     }
-    if (res.value.available) {
-      setVersion(res.value.version);
+    if (info.available) {
+      setVersion(info.version);
+      setReleaseUrl(info.url);
       setCheck('available');
     } else {
       setCheck('upToDate');
@@ -49,13 +53,10 @@ export function StatusBar({ localeTag }: { localeTag: string }): JSX.Element {
     void runCheck();
   }, [runCheck]);
 
-  const handleInstall = useCallback(async () => {
-    setCheck('installing');
-    const res = await updaterInstall();
-    // On success the updater relaunches the app; on failure fall back to the
-    // available state so the user can retry.
-    if (!res.ok) setCheck('available');
-  }, []);
+  const handleInstall = useCallback(() => {
+    // No signed in-app installer: open the release page to download the update.
+    if (releaseUrl) void openExternal(releaseUrl);
+  }, [releaseUrl]);
 
   return (
     <footer className="markdit-statusbar" aria-label={t('app.title')}>

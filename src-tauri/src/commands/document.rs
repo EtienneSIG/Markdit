@@ -6,6 +6,8 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
+use base64::Engine;
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenedDocument {
@@ -66,8 +68,6 @@ pub fn document_open(path: String) -> CommandResult<OpenedDocument> {
 pub struct SaveResult {
     pub content_hash: String,
 }
-
-/// Save Markdown to disk, guarding against an out-of-band change (conflict).
 #[tauri::command]
 pub fn document_save(
     path: String,
@@ -83,6 +83,59 @@ pub fn document_save(
     }
     std::fs::write(&path, &markdown).map_err(|e| CommandError::io_error(e.to_string()))?;
     Ok(SaveResult { content_hash: hash(&markdown) })
+}
+
+/// Guess an image MIME type from a file extension (best-effort).
+fn image_mime(path: &Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("svg") => "image/svg+xml",
+        Some("bmp") => "image/bmp",
+        Some("ico") => "image/x-icon",
+        Some("avif") => "image/avif",
+        Some("apng") => "image/apng",
+        _ => "application/octet-stream",
+    }
+}
+
+/// Resolve an image referenced by `src` relative to the document at `doc_path`
+/// and return it as a base64 data URL. Lets a file-association document display
+/// images that the browser File System Access API cannot reach. Reads stay local
+/// (Principle III); only the requested file is read.
+#[tauri::command]
+pub fn read_image_data_url(doc_path: String, src: String) -> CommandResult<String> {
+    let base_dir = Path::new(&doc_path)
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
+    let src_path = Path::new(&src);
+    let target = if src_path.is_absolute() {
+        src_path.to_path_buf()
+    } else {
+        base_dir.join(src_path)
+    };
+
+    if !target.is_file() {
+        return Err(CommandError::not_found(target.to_string_lossy().to_string()));
+    }
+    let bytes = std::fs::read(&target).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => {
+            CommandError::not_found(target.to_string_lossy().to_string())
+        }
+        std::io::ErrorKind::PermissionDenied => {
+            CommandError::permission_denied(target.to_string_lossy().to_string())
+        }
+        _ => CommandError::io_error(e.to_string()),
+    })?;
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", image_mime(&target), encoded))
 }
 
 /// Registry of active file watchers, keyed by absolute path. Keeping the watcher

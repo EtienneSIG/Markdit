@@ -20,6 +20,8 @@ export interface FileNode {
   kind: 'file' | 'directory';
   /** File handle for browser File System Access API (files only). */
   handle?: FileSystemFileHandle;
+  /** Parent directory handle (files only) — used to resolve relative images. */
+  dirHandle?: FileSystemDirectoryHandle;
   /** Lazily-built children for directories. */
   children?: FileNode[];
   /** Display path relative to the opened root. */
@@ -32,6 +34,8 @@ export interface SelectedFile {
   markdown: string;
   /** File handle for saving back to disk (browser File System Access API). */
   handle?: FileSystemFileHandle;
+  /** Parent directory handle — used to resolve relative images in the file. */
+  dirHandle?: FileSystemDirectoryHandle;
 }
 
 export interface FileExplorerProps {
@@ -65,7 +69,7 @@ async function readDirectory(
         nodes.push({ name: entry.name, kind: 'directory', children, path });
       }
     } else if (MD_EXT.test(entry.name)) {
-      nodes.push({ name: entry.name, kind: 'file', handle: entry as FileSystemFileHandle, path });
+      nodes.push({ name: entry.name, kind: 'file', handle: entry as FileSystemFileHandle, dirHandle: dir, path });
     }
   }
   // Folders first, then files; both alphabetical.
@@ -383,7 +387,13 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
       try {
         const file = await node.handle.getFile();
         const markdown = await file.text();
-        onOpenFile({ name: node.name, path: node.path, markdown, handle: node.handle });
+        onOpenFile({
+          name: node.name,
+          path: node.path,
+          markdown,
+          handle: node.handle,
+          dirHandle: node.dirHandle,
+        });
         void addRecent({ name: node.name, kind: 'file', path: node.path }, node.handle);
       } catch (err) {
         setError(String(err));

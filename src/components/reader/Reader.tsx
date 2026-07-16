@@ -11,6 +11,12 @@ export interface ReaderProps {
   markdown: string;
   allowRemoteContent: boolean;
   theme: ThemeId;
+  /**
+   * Resolve a local (relative/absolute filesystem) image `src` to a URL the
+   * webview can display (blob or data URL), or null when it can't be resolved.
+   * When provided, local images in the document are shown on-device.
+   */
+  resolveImage?: (src: string) => Promise<string | null>;
 }
 
 /**
@@ -19,7 +25,7 @@ export interface ReaderProps {
  * first render of large files (SC-002 graceful degradation). Files above the
  * documented threshold skip highlighting entirely to stay responsive (T029).
  */
-export function Reader({ markdown, allowRemoteContent, theme }: ReaderProps): JSX.Element {
+export function Reader({ markdown, allowRemoteContent, theme, resolveImage }: ReaderProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Documented graceful degradation for very large files (Edge Case, T029).
@@ -29,9 +35,46 @@ export function Reader({ markdown, allowRemoteContent, theme }: ReaderProps): JS
   );
 
   const html = useMemo(
-    () => renderHtml(parse(markdown), { allowRemoteContent, highlight: !isLargeFile }),
-    [markdown, allowRemoteContent, isLargeFile],
+    () =>
+      renderHtml(parse(markdown), {
+        allowRemoteContent,
+        highlight: !isLargeFile,
+        deferLocalImages: Boolean(resolveImage),
+      }),
+    [markdown, allowRemoteContent, isLargeFile, resolveImage],
   );
+
+  // Resolve local images on-device (from the document's folder). Blob URLs are
+  // revoked on re-render/unmount so nothing leaks. Nothing leaves the device.
+  useEffect(() => {
+    if (!resolveImage) return;
+    const root = containerRef.current;
+    if (!root) return;
+    let cancelled = false;
+    const objectUrls: string[] = [];
+    const images = Array.from(root.querySelectorAll<HTMLImageElement>('img[data-local-src]'));
+    (async () => {
+      for (const img of images) {
+        if (cancelled) return;
+        const src = img.getAttribute('data-local-src');
+        if (!src) continue;
+        const resolved = await resolveImage(src);
+        if (cancelled) {
+          if (resolved?.startsWith('blob:')) URL.revokeObjectURL(resolved);
+          return;
+        }
+        if (resolved) {
+          img.src = resolved;
+          img.removeAttribute('data-local-src');
+          if (resolved.startsWith('blob:')) objectUrls.push(resolved);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      for (const url of objectUrls) URL.revokeObjectURL(url);
+    };
+  }, [html, resolveImage]);
 
   // Progressive, non-blocking syntax highlighting of fenced code blocks.
   // Skipped for large files to keep scrolling/interaction responsive.

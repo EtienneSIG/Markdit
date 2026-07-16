@@ -8,7 +8,8 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import type { Editor as TiptapEditor } from '@tiptap/react';
 import { parse } from '../../markdown/parse';
 import { serialize } from '../../markdown/serialize';
 import {
@@ -16,6 +17,7 @@ import {
   proseMirrorToMdast,
   type ProseMirrorDoc,
 } from '../../markdown/tiptap-bridge';
+import { blobToDataUrl, imageFilesFrom } from '../../lib/image';
 import { Toolbar } from '../toolbar/Toolbar';
 import { t } from '../../lib/i18n';
 
@@ -32,6 +34,22 @@ export interface EditorProps {
  */
 export function Editor({ markdown, onChange }: EditorProps): JSX.Element {
   const lastEmitted = useRef<string>(markdown);
+  const editorRef = useRef<TiptapEditor | null>(null);
+
+  // Embed dropped/pasted images as self-contained base64 data URIs so the
+  // Markdown stays portable (nothing is uploaded; nothing leaves the device).
+  const insertImages = useCallback(async (files: File[]) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    for (const file of files) {
+      try {
+        const src = await blobToDataUrl(file);
+        ed.chain().focus().setImage({ src, alt: file.name }).run();
+      } catch {
+        /* Skip unreadable images. */
+      }
+    }
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -59,8 +77,27 @@ export function Editor({ markdown, onChange }: EditorProps): JSX.Element {
         'aria-multiline': 'true',
         'aria-label': t('editor.label'),
       },
+      handlePaste: (_view, event) => {
+        const files = imageFilesFrom(event.clipboardData);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        void insertImages(files);
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        const files = imageFilesFrom((event as DragEvent).dataTransfer);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        void insertImages(files);
+        return true;
+      },
     },
   });
+
+  // Expose the live editor to the paste/drop handlers defined above.
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   // Re-sync external markdown changes (e.g. file reload) without clobbering
   // in-flight edits.

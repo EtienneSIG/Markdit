@@ -28,6 +28,7 @@ import {
   isDesktopShell,
 } from '../lib/desktop';
 import { addRecent, type RecentItem } from '../lib/recent';
+import { resolveViaDirHandle, resolveViaPath } from '../lib/image';
 import { DEFAULT_PRIVACY_SETTINGS, type PrivacySettings } from '../lib/types';
 import { copyMarkdownAsRichText } from '../lib/clipboard';
 import { writeFileHandle } from '../lib/folder-handle';
@@ -57,6 +58,7 @@ export function App(): JSX.Element {
   const [markdown, setMarkdown] = useState<string>(SAMPLE);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [fileDir, setFileDir] = useState<FileSystemDirectoryHandle | null>(null);
   const [view, setView] = useState<ViewMode>('read');
   const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
   const [slidesOpen, setSlidesOpen] = useState(false);
@@ -166,6 +168,7 @@ export function App(): JSX.Element {
     setMarkdown(file.markdown);
     setFilePath(file.path);
     setFileHandle(file.handle ?? null);
+    setFileDir(file.dirHandle ?? null);
     setDirty(false);
     setView('read');
   }, []);
@@ -187,6 +190,7 @@ export function App(): JSX.Element {
       setMarkdown(doc.markdown);
       setFilePath(doc.path);
       setFileHandle(null);
+      setFileDir(null);
       setDirty(false);
       setView('read');
       void addRecent({ name: doc.fileName, kind: 'file', path: doc.path });
@@ -222,6 +226,20 @@ export function App(): JSX.Element {
     setSidebarCollapsed(false);
     void fileExplorerRef.current?.openRecent(item);
   }, []);
+
+  // Resolve local images (referenced by relative/absolute path) on-device: from
+  // the opened folder's directory handle in the browser, or via the desktop core
+  // for a file opened by native path. Loose files with no folder context skip
+  // resolution. Nothing leaves the device (Principle III).
+  const canResolveImages = fileDir !== null || (filePath !== null && isDesktopShell());
+  const resolveImage = useCallback(
+    (src: string): Promise<string | null> => {
+      if (fileDir) return resolveViaDirHandle(fileDir, src);
+      if (filePath && isDesktopShell()) return resolveViaPath(filePath, src);
+      return Promise.resolve(null);
+    },
+    [fileDir, filePath],
+  );
 
   // Editing marks the document dirty so auto-save can pick it up. TipTap only
   // calls onChange for genuine user edits (external re-syncs don't emit), so
@@ -658,6 +676,7 @@ export function App(): JSX.Element {
               markdown={markdown}
               allowRemoteContent={settings.allowRemoteContent}
               theme={settings.theme}
+              resolveImage={canResolveImages ? resolveImage : undefined}
             />
           ) : (
             <Suspense fallback={null}>

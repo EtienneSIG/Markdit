@@ -787,6 +787,24 @@ a:focus-visible,
   padding: 0;
 }
 
+/* Images: keep them within the reading column; hide the broken-image glyph
+   while a local image is still being resolved on-device (data-local-src). */
+.markdit-reader img,
+.markdit-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+.markdit-reader img[data-local-src] {
+  visibility: hidden;
+}
+
+.markdit-editor img.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .markdit-mermaid {
   margin: 1rem 0;
   padding: 1rem;

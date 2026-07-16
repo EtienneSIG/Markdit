@@ -57,6 +57,25 @@ export async function writeFileByPath(path: string, markdown: string): Promise<b
 }
 
 /**
+ * Read an image referenced (relatively or absolutely) by a document opened from
+ * `docPath`, returning a base64 data URL. Resolution and the file read happen in
+ * the desktop core so a file-association document can still show its images.
+ */
+export async function readImageDataUrl(docPath: string, src: string): Promise<string> {
+  return invokeInternal<string>('read_image_data_url', { docPath, src });
+}
+
+/** Open an https URL in the user's default browser (a no-op in the web build). */
+export async function openExternal(url: string): Promise<void> {
+  if (!isDesktopShell()) return;
+  try {
+    await invokeInternal('open_external', { url });
+  } catch {
+    /* Ignore — opening is best-effort. */
+  }
+}
+
+/**
  * Path of a Markdown file passed on the command line (file association), or null
  * on first launch with no file / in the web build. Read once on startup.
  */

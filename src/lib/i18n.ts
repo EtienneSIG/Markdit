@@ -50,6 +50,7 @@ const STRINGS: Record<Locale, Dict> = {
     'table.addColumn': 'Add column right',
     'table.deleteColumn': 'Delete column',
     'table.delete': 'Delete table',
+    'action.insertImage': 'Insert image',
     'editor.label': 'Markdown editor',
     'notice.remoteBlocked':
       'Remote content is blocked. Enable it in Settings to load remote images.',
@@ -148,6 +149,7 @@ const STRINGS: Record<Locale, Dict> = {
     'table.addColumn': 'Ajouter une colonne à droite',
     'table.deleteColumn': 'Supprimer la colonne',
     'table.delete': 'Supprimer le tableau',
+    'action.insertImage': 'Insérer une image',
     'editor.label': 'Éditeur Markdown',
     'notice.remoteBlocked':
       'Le contenu distant est bloqué. Activez-le dans les Réglages pour charger les images distantes.',

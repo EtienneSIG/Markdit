@@ -20,10 +20,21 @@ export interface RenderOptions {
   allowRemoteContent?: boolean;
   /** add language-* hooks for client-side highlighting (FR-002). */
   highlight?: boolean;
+  /**
+   * default false — move local (relative/absolute filesystem) image sources to
+   * `data-local-src` so the reader can resolve them on-device asynchronously
+   * without the webview firing a broken cross-origin request first.
+   */
+  deferLocalImages?: boolean;
 }
 
 function isRemote(url: string | undefined): boolean {
   return !!url && /^https?:\/\//i.test(url);
+}
+
+/** True for an image src the webview can already load without local resolution. */
+function isDirectlyLoadable(url: string | undefined): boolean {
+  return !!url && /^(https?:|data:|blob:)/i.test(url);
 }
 
 /** Walk a hast tree and neutralize remote image sources when not consented. */
@@ -45,6 +56,23 @@ function gateRemoteContent(node: HastRoot | ElementContent): void {
   }
 }
 
+/** Walk a hast tree and defer local image sources for on-device resolution. */
+function deferLocalImages(node: HastRoot | ElementContent): void {
+  if ((node as Element).type === 'element') {
+    const el = node as Element;
+    const src = el.properties?.src as string | undefined;
+    if (el.tagName === 'img' && src && !isDirectlyLoadable(src)) {
+      el.properties = el.properties ?? {};
+      el.properties['data-local-src'] = src;
+      delete el.properties.src;
+    }
+  }
+  const children = (node as HastRoot | Element).children;
+  if (Array.isArray(children)) {
+    for (const child of children) deferLocalImages(child as ElementContent);
+  }
+}
+
 /** Render mdast to sanitized, safe HTML. Synchronous and deterministic. */
 export function renderHtml(tree: Root, opts: RenderOptions = {}): string {
   const allowRemoteContent = opts.allowRemoteContent ?? false;
@@ -56,5 +84,6 @@ export function renderHtml(tree: Root, opts: RenderOptions = {}): string {
 
   const hast = processor.runSync(tree) as HastRoot;
   if (!allowRemoteContent) gateRemoteContent(hast);
+  if (opts.deferLocalImages) deferLocalImages(hast);
   return processor.stringify(hast);
 }

@@ -34,18 +34,21 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(document::WatchRegistry::default())
         .invoke_handler(tauri::generate_handler![
             document::document_open,
             document::document_save,
             document::document_startup_file,
+            document::read_image_data_url,
             document::document_watch,
             document::document_unwatch,
             settings::settings_get,
             settings::settings_set,
             update::updater_check,
             update::updater_install,
+            update::open_external,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Markdit");

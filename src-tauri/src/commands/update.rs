@@ -79,3 +79,17 @@ pub fn updater_check() -> CommandResult<UpdateStatus> {
 pub fn updater_install() -> CommandResult<()> {
     Ok(())
 }
+
+/// Open an external `https` URL in the user's default browser — used to reach
+/// the GitHub releases page when a newer version is available. Restricted to
+/// `https` so nothing else can be launched through this command.
+#[tauri::command]
+pub fn open_external(app: tauri::AppHandle, url: String) -> CommandResult<()> {
+    use tauri_plugin_opener::OpenerExt;
+    if !url.starts_with("https://") {
+        return Err(CommandError::invalid_argument("Only https URLs may be opened."));
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| CommandError::io_error(e.to_string()))
+}
