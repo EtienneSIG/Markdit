@@ -10,6 +10,7 @@ import {
 } from '../components/sidebar/FileExplorer';
 import { FileMenu } from '../components/toolbar/FileMenu';
 import { StatusBar } from '../components/statusbar/StatusBar';
+import { TableOfContents } from '../components/sidebar/TableOfContents';
 import {
   documentOpen,
   documentSaveAs,
@@ -65,7 +66,9 @@ export function App(): JSX.Element {
   const [conflictOpen, setConflictOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [saveStatus, setSaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'downloaded' | 'failed'
+  >('idle');
   const [locale, setLocaleState] = useState<string>('en');
 
   // Tracks unsaved edits so auto-save only writes after a genuine change and
@@ -81,6 +84,7 @@ export function App(): JSX.Element {
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'failed'>('idle');
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLElement>(null);
 
   // Load persisted settings (privacy profile) on startup.
   useEffect(() => {
@@ -127,7 +131,34 @@ export function App(): JSX.Element {
     }
   }, [filePath]);
 
+  const fileLabel = filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md';
+  const downloadOnly = !fileHandle && !isDesktopShell() && !isTauriAvailable();
+
+  const downloadMarkdown = useCallback((): string => {
+    const filename = /\.(md|markdown|mdown|mkd)$/i.test(fileLabel) ? fileLabel : `${fileLabel}.md`;
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return filename;
+  }, [markdown, fileLabel]);
+
   const handleSave = useCallback(async () => {
+    if (downloadOnly) {
+      try {
+        downloadMarkdown();
+        setSaveStatus('downloaded');
+      } catch {
+        setSaveStatus('failed');
+      }
+      window.setTimeout(() => setSaveStatus('idle'), 2500);
+      return;
+    }
     // Prefer saving in place to the file opened from the sidebar (File System
     // Access API). Fall back to the desktop Save As dialog when no handle is
     // available (e.g. a freshly typed, never-saved document).
@@ -162,7 +193,17 @@ export function App(): JSX.Element {
       setSaveStatus('failed');
     }
     window.setTimeout(() => setSaveStatus('idle'), 2500);
-  }, [markdown, fileHandle, filePath]);
+  }, [markdown, fileHandle, filePath, downloadOnly, downloadMarkdown]);
+
+  useEffect(() => {
+    if (!dirty || isDesktopShell()) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
+  }, [dirty]);
 
   const handleOpenFromSidebar = useCallback((file: SelectedFile) => {
     setMarkdown(file.markdown);
@@ -266,24 +307,6 @@ export function App(): JSX.Element {
     setCopyStatus(ok ? 'copied' : 'failed');
     window.setTimeout(() => setCopyStatus('idle'), 2500);
   }, [markdown]);
-
-  const fileLabel = filePath ? filePath.split(/[\\/]/).pop()! : 'Untitled.md';
-
-  // Download the current document as a `.md` file (works in both the desktop
-  // webview and the browser build).
-  const downloadMarkdown = useCallback((): string => {
-    const filename = /\.(md|markdown|mdown|mkd)$/i.test(fileLabel) ? fileLabel : `${fileLabel}.md`;
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    return filename;
-  }, [markdown, fileLabel]);
 
   const handleDownload = useCallback(() => {
     setShareMenuOpen(false);
@@ -458,42 +481,44 @@ export function App(): JSX.Element {
             onOpenFolder={handleMenuOpenFolder}
             onOpenRecent={handleMenuOpenRecent}
           />
-          {(fileHandle !== null || (filePath !== null && isDesktopShell()) || isTauriAvailable()) && (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saveStatus === 'saving'}
-              title={t('action.save')}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saveStatus === 'saving'}
+            title={downloadOnly ? t('share.download') : t('action.save')}
+          >
+            <svg
+              className="markdit-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
             >
-              <svg
-                className="markdit-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                focusable="false"
-              >
-                {saveStatus === 'saved' ? (
-                  <path d="m5 13 4 4L19 7" />
-                ) : (
-                  <>
-                    <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-                    <path d="M8 4v5h7V4M8 21v-7h8v7" />
-                  </>
-                )}
-              </svg>
-              {saveStatus === 'saving'
-                ? t('action.saving')
-                : saveStatus === 'saved'
-                  ? t('action.saved')
+              {saveStatus === 'saved' ? (
+                <path d="m5 13 4 4L19 7" />
+              ) : (
+                <>
+                  <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                  <path d="M8 4v5h7V4M8 21v-7h8v7" />
+                </>
+              )}
+            </svg>
+            {saveStatus === 'saving'
+              ? t('action.saving')
+              : saveStatus === 'saved'
+                ? t('action.saved')
+                : saveStatus === 'downloaded'
+                  ? t('action.downloadStarted')
                   : saveStatus === 'failed'
                     ? t('action.saveFailed')
-                    : t('action.save')}
-            </button>
-          )}
+                    : downloadOnly
+                      ? t('share.download')
+                      : t('action.save')}
+          </button>
           <button
             type="button"
             onClick={handleCopy}
@@ -670,7 +695,7 @@ export function App(): JSX.Element {
           collapsed={sidebarCollapsed}
         />
 
-        <main className="markdit-main">
+        <main className="markdit-main" ref={contentRef}>
           {view === 'read' ? (
             <Reader
               markdown={markdown}
@@ -680,10 +705,15 @@ export function App(): JSX.Element {
             />
           ) : (
             <Suspense fallback={null}>
-              <Editor markdown={markdown} onChange={handleMarkdownChange} />
+              <Editor
+                markdown={markdown}
+                onChange={handleMarkdownChange}
+                allowRemoteContent={settings.allowRemoteContent}
+              />
             </Suspense>
           )}
         </main>
+        <TableOfContents contentRef={contentRef} />
       </div>
 
       {slidesOpen && (

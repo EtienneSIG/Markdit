@@ -4,6 +4,8 @@
 declare const __APP_VERSION__: string;
 /** SPDX license id, injected at build time from package.json. */
 declare const __APP_LICENSE__: string;
+/** Explicitly disable native bridges in the standalone browser build. */
+declare const __MARKDIT_WEB__: boolean;
 
 interface ImportMetaEnv {
   readonly VITE_MSAL_CLIENT_ID?: string;

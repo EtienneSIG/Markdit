@@ -19,6 +19,7 @@ interface TauriInternals {
 }
 
 function internals(): TauriInternals | null {
+  if (__MARKDIT_WEB__) return null;
   return (globalThis as { __TAURI_INTERNALS__?: TauriInternals }).__TAURI_INTERNALS__ ?? null;
 }
 

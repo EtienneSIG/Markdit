@@ -25,7 +25,12 @@ export interface ReaderProps {
  * first render of large files (SC-002 graceful degradation). Files above the
  * documented threshold skip highlighting entirely to stay responsive (T029).
  */
-export function Reader({ markdown, allowRemoteContent, theme, resolveImage }: ReaderProps): JSX.Element {
+export function Reader({
+  markdown,
+  allowRemoteContent,
+  theme,
+  resolveImage,
+}: ReaderProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Documented graceful degradation for very large files (Edge Case, T029).
@@ -39,9 +44,9 @@ export function Reader({ markdown, allowRemoteContent, theme, resolveImage }: Re
       renderHtml(parse(markdown), {
         allowRemoteContent,
         highlight: !isLargeFile,
-        deferLocalImages: Boolean(resolveImage),
+        deferLocalImages: true,
       }),
-    [markdown, allowRemoteContent, isLargeFile, resolveImage],
+    [markdown, allowRemoteContent, isLargeFile],
   );
 
   // Resolve local images on-device (from the document's folder). Blob URLs are

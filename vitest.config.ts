@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   define: {
+    __MARKDIT_WEB__: 'false',
     __APP_VERSION__: JSON.stringify('0.0.0-test'),
     __APP_LICENSE__: JSON.stringify('MIT'),
   },

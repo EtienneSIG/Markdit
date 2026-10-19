@@ -24,6 +24,7 @@ import { t } from '../../lib/i18n';
 export interface EditorProps {
   markdown: string;
   onChange: (markdown: string) => void;
+  allowRemoteContent?: boolean;
 }
 
 /**
@@ -32,7 +33,11 @@ export interface EditorProps {
  * is converted to mdast and serialized to standard Markdown on every change
  * (Principle I/II). No proprietary format is ever persisted.
  */
-export function Editor({ markdown, onChange }: EditorProps): JSX.Element {
+export function Editor({
+  markdown,
+  onChange,
+  allowRemoteContent = false,
+}: EditorProps): JSX.Element {
   const lastEmitted = useRef<string>(markdown);
   const editorRef = useRef<TiptapEditor | null>(null);
 
@@ -51,48 +56,67 @@ export function Editor({ markdown, onChange }: EditorProps): JSX.Element {
     }
   }, []);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false, autolink: false }),
-      Image.configure({ inline: true, allowBase64: true }),
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      TaskList,
-      TaskItem.configure({ nested: true }),
-    ],
-    content: mdastToProseMirror(parse(markdown)) as unknown as Record<string, unknown>,
-    onUpdate: ({ editor: ed }) => {
-      const doc = ed.getJSON() as unknown as ProseMirrorDoc;
-      const md = serialize(proseMirrorToMdast(doc));
-      lastEmitted.current = md;
-      onChange(md);
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit,
+        Link.configure({ openOnClick: false, autolink: false }),
+        Image.extend({
+          renderHTML({ HTMLAttributes }) {
+            const attributes = { ...this.options.HTMLAttributes, ...HTMLAttributes };
+            const src: unknown = attributes.src;
+            // Preserve the original src in editor state/Markdown, but never let
+            // the DOM fetch it without consent. Relative filesystem images are
+            // resolved by the reader, not by the web server hosting the editor.
+            if (
+              typeof src === 'string' &&
+              !/^(data:|blob:)/i.test(src) &&
+              !(allowRemoteContent && /^https?:\/\//i.test(src))
+            ) {
+              delete attributes.src;
+            }
+            return ['img', attributes];
+          },
+        }).configure({ inline: true, allowBase64: true }),
+        Table.configure({ resizable: true }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        TaskList,
+        TaskItem.configure({ nested: true }),
+      ],
+      content: mdastToProseMirror(parse(markdown)) as unknown as Record<string, unknown>,
+      onUpdate: ({ editor: ed }) => {
+        const doc = ed.getJSON() as unknown as ProseMirrorDoc;
+        const md = serialize(proseMirrorToMdast(doc));
+        lastEmitted.current = md;
+        onChange(md);
+      },
+      editorProps: {
+        attributes: {
+          class: 'markdit-editor',
+          role: 'textbox',
+          'aria-multiline': 'true',
+          'aria-label': t('editor.label'),
+        },
+        handlePaste: (_view, event) => {
+          const files = imageFilesFrom(event.clipboardData);
+          if (files.length === 0) return false;
+          event.preventDefault();
+          void insertImages(files);
+          return true;
+        },
+        handleDrop: (_view, event) => {
+          const files = imageFilesFrom((event as DragEvent).dataTransfer);
+          if (files.length === 0) return false;
+          event.preventDefault();
+          void insertImages(files);
+          return true;
+        },
+      },
     },
-    editorProps: {
-      attributes: {
-        class: 'markdit-editor',
-        role: 'textbox',
-        'aria-multiline': 'true',
-        'aria-label': t('editor.label'),
-      },
-      handlePaste: (_view, event) => {
-        const files = imageFilesFrom(event.clipboardData);
-        if (files.length === 0) return false;
-        event.preventDefault();
-        void insertImages(files);
-        return true;
-      },
-      handleDrop: (_view, event) => {
-        const files = imageFilesFrom((event as DragEvent).dataTransfer);
-        if (files.length === 0) return false;
-        event.preventDefault();
-        void insertImages(files);
-        return true;
-      },
-    },
-  });
+    [allowRemoteContent],
+  );
 
   // Expose the live editor to the paste/drop handlers defined above.
   useEffect(() => {

@@ -3,13 +3,7 @@ import { isDesktopShell, openExternal } from '../../lib/desktop';
 import { checkForUpdate } from '../../lib/update';
 import { t } from '../../lib/i18n';
 
-type CheckState =
-  | 'idle'
-  | 'checking'
-  | 'upToDate'
-  | 'available'
-  | 'unavailable'
-  | 'installing';
+type CheckState = 'idle' | 'checking' | 'upToDate' | 'available' | 'unavailable' | 'installing';
 
 /**
  * Bottom-right status bar (inspired by the Wiki viewer footer). Surfaces the
@@ -71,7 +65,11 @@ export function StatusBar({ localeTag }: { localeTag: string }): JSX.Element {
         ·
       </span>
 
-      {check === 'available' ? (
+      {!isDesktopShell() ? (
+        <span className="markdit-statusbar-version" title={t('web.privacyDetail')}>
+          {t('web.localOnly')}
+        </span>
+      ) : check === 'available' ? (
         <button
           type="button"
           className="markdit-statusbar-check is-available"
@@ -89,9 +87,7 @@ export function StatusBar({ localeTag }: { localeTag: string }): JSX.Element {
         <button
           type="button"
           className={
-            check === 'upToDate'
-              ? 'markdit-statusbar-check is-ok'
-              : 'markdit-statusbar-check'
+            check === 'upToDate' ? 'markdit-statusbar-check is-ok' : 'markdit-statusbar-check'
           }
           onClick={() => void runCheck()}
           disabled={check === 'checking'}

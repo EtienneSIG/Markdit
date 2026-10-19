@@ -16,6 +16,7 @@ interface TauriGlobal {
 }
 
 function getInvoke(): InvokeFn | null {
+  if (__MARKDIT_WEB__) return null;
   const tauri = (globalThis as { __TAURI__?: TauriGlobal }).__TAURI__;
   return tauri?.core?.invoke ?? tauri?.invoke ?? null;
 }
@@ -102,6 +103,7 @@ interface TauriEventApi {
 export async function onDocumentChanged(
   handler: (e: DocumentChangedEvent) => void,
 ): Promise<() => void> {
+  if (__MARKDIT_WEB__) return () => {};
   const tauri = (globalThis as { __TAURI__?: { event?: TauriEventApi } }).__TAURI__;
   const listen = tauri?.event?.listen;
   if (!listen) return () => {};

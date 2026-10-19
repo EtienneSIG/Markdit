@@ -84,7 +84,10 @@ installer fetches it automatically when needed.
 2. **Visual editing** - format content with a ribbon while Markdit preserves
    clean Markdown.
 3. **File navigation** - open files or folders, browse Markdown documents, and
-   collapse the sidebar for a wider writing surface.
+   collapse the sidebar for a wider writing surface. A collapsible table of
+   contents on the right lists document headings in read and edit modes; click
+   a heading to jump to its section. It updates as you edit and disappears when
+   the document has no headings, without modifying the Markdown.
 4. **Rich copy and sharing** - copy rendered content with Markdown fallback,
    download the current file, or prepare an email handoff.
 5. **Slide generation** - create Marp-compatible decks from the current
@@ -108,6 +111,19 @@ settings persistence, signed updates, and file watching.
 | `src/privacy/` | Consent state, opt-in telemetry, privacy controls |
 
 ## Development
+
+### Browser webapp
+
+**[Open Markdit Web](https://polite-coast-058b5cf0f.5.azurestaticapps.net)** —
+hosted on Azure Static Web Apps with HTTPS. Documents are processed locally in
+your browser; the application does not upload them.
+
+Run `npm run build:web` then `npm run start:web` to open the standalone webapp at
+<http://127.0.0.1:1421>. Documents stay on the user's device; no account or document
+server is required. The production server includes restrictive browser security
+headers and requires TLS for non-loopback hosting. See the
+[web deployment guide](docs/WEB.md) for HTTPS setup, access-control boundaries,
+browser support and verification.
 
 Prerequisites: Node 20+ and, for the desktop build, the Rust toolchain with the
 Tauri prerequisites.

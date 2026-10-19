@@ -118,7 +118,17 @@ export function FileMenu({ onOpenFile, onOpenFolder, onOpenRecent }: FileMenuPro
             </svg>
             {t('file.open')}
           </button>
-          <button type="button" role="menuitem" onClick={() => run(onOpenFolder)}>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => run(onOpenFolder)}
+            disabled={typeof window.showDirectoryPicker !== 'function'}
+            title={
+              typeof window.showDirectoryPicker !== 'function'
+                ? t('sidebar.unsupported')
+                : undefined
+            }
+          >
             <svg
               className="markdit-icon"
               viewBox="0 0 24 24"

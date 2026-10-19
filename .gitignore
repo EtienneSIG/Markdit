@@ -5,10 +5,14 @@ node_modules/
 
 # Build output
 dist/
+dist-web/
 dist-ssr/
 build/
 out/
 *.local
+*.pem
+*.key
+*.pfx
 
 # Rust / Tauri
 src-tauri/target/

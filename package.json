@@ -8,6 +8,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:web": "tsc --noEmit && vite build --mode web",
+    "start:web": "node scripts/serve-web.mjs",
+    "test:web": "node --test tests/web/server.test.mjs",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",

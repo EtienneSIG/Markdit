@@ -4,6 +4,7 @@ import { saveFolders, clearFolders } from '../../lib/folder-handle';
 import { isDesktopShell, readFileByPath } from '../../lib/desktop';
 import { addRecent, getRecentHandle, type RecentItem } from '../../lib/recent';
 import { t } from '../../lib/i18n';
+import { captureDrop, readDroppedEntry, type DropSource } from '../../lib/dropped-files';
 
 /** Sidebar width bounds (px) and persistence key for the resize handle. */
 const MIN_SIDEBAR_WIDTH = 180;
@@ -20,6 +21,8 @@ export interface FileNode {
   kind: 'file' | 'directory';
   /** File handle for browser File System Access API (files only). */
   handle?: FileSystemFileHandle;
+  /** Session-only browser fallback when writable file handles are unavailable. */
+  file?: File;
   /** Parent directory handle (files only) — used to resolve relative images. */
   dirHandle?: FileSystemDirectoryHandle;
   /** Lazily-built children for directories. */
@@ -55,10 +58,7 @@ export interface FileExplorerHandle {
 const MD_EXT = /\.(md|markdown|mdown|mkd)$/i;
 
 /** Recursively read a directory handle into a tree of Markdown files/folders. */
-async function readDirectory(
-  dir: FileSystemDirectoryHandle,
-  basePath = '',
-): Promise<FileNode[]> {
+async function readDirectory(dir: FileSystemDirectoryHandle, basePath = ''): Promise<FileNode[]> {
   const nodes: FileNode[] = [];
   for await (const entry of dir.values()) {
     const path = basePath ? `${basePath}/${entry.name}` : entry.name;
@@ -69,7 +69,13 @@ async function readDirectory(
         nodes.push({ name: entry.name, kind: 'directory', children, path });
       }
     } else if (MD_EXT.test(entry.name)) {
-      nodes.push({ name: entry.name, kind: 'file', handle: entry as FileSystemFileHandle, dirHandle: dir, path });
+      nodes.push({
+        name: entry.name,
+        kind: 'file',
+        handle: entry as FileSystemFileHandle,
+        dirHandle: dir,
+        path,
+      });
     }
   }
   // Folders first, then files; both alphabetical.
@@ -191,7 +197,7 @@ function RootSection({ root, activePath, onSelect, onRemove }: RootSectionProps)
  * folders and files locally — no upload, nothing leaves the device
  * (Principle III). Supports several folders at once plus individually added
  * files (multi-root workspace). When running without the File System Access
- * API, falls back to the native Tauri open dialog.
+ * API, falls back to the native Tauri dialog or a session-only browser File.
  */
 export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(function FileExplorer(
   { activePath, onOpenFile, collapsed = false },
@@ -200,6 +206,9 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
   const [roots, setRoots] = useState<WorkspaceRoot[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dropActive, setDropActive] = useState(false);
+  const [openingDrop, setOpeningDrop] = useState(false);
 
   /** User-adjustable sidebar width (px), restored from the previous session. */
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -260,9 +269,7 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
 
   /** Persist the current folder roots (file roots stay session-only). */
   const persistFolders = useCallback((next: WorkspaceRoot[]) => {
-    const handles = next
-      .filter((r) => r.kind === 'folder' && r.dirHandle)
-      .map((r) => r.dirHandle!);
+    const handles = next.filter((r) => r.kind === 'folder' && r.dirHandle).map((r) => r.dirHandle!);
     if (handles.length > 0) void saveFolders(handles);
     else void clearFolders();
   }, []);
@@ -273,9 +280,7 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
       const nodes = await readDirectory(dir);
       setRoots((prev) => {
         // Replace an existing root for the same folder name to avoid duplicates.
-        const withoutDupe = prev.filter(
-          (r) => !(r.kind === 'folder' && r.name === dir.name),
-        );
+        const withoutDupe = prev.filter((r) => !(r.kind === 'folder' && r.name === dir.name));
         const next: WorkspaceRoot[] = [
           ...withoutDupe,
           { id: `folder:${dir.name}`, name: dir.name, kind: 'folder', nodes, dirHandle: dir },
@@ -291,18 +296,58 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
   /** Pick a folder and add it as a new root (keeps any existing roots). */
   const openFolder = useCallback(async () => {
     setError(null);
+    if (!canPickDirectory) {
+      setError(t('sidebar.unsupported'));
+      return;
+    }
     try {
       const dir = await window.showDirectoryPicker!({ mode: 'readwrite' });
       await addFolderRoot(dir);
     } catch (err) {
       if ((err as DOMException)?.name !== 'AbortError') setError(String(err));
     }
-  }, [addFolderRoot]);
+  }, [addFolderRoot, canPickDirectory]);
+
+  const addFiles = useCallback((newFiles: FileNode[]) => {
+    setRoots((prev) => {
+      const existing = prev.find((r) => r.id === 'files');
+      const mergedNodes = [
+        ...(existing?.nodes.filter((node) => !newFiles.some((file) => file.path === node.path)) ??
+          []),
+        ...newFiles,
+      ].sort((a, b) => a.name.localeCompare(b.name));
+      const filesRoot: WorkspaceRoot = {
+        id: 'files',
+        name: t('sidebar.filesGroup'),
+        kind: 'files',
+        nodes: mergedNodes,
+      };
+      return [filesRoot, ...prev.filter((r) => r.id !== 'files')];
+    });
+  }, []);
 
   /** Pick one or more Markdown files and add them under a "Files" root. */
   const openFiles = useCallback(async () => {
     setError(null);
     try {
+      if (!canPickFiles) {
+        if (isTauriAvailable()) {
+          const result = await documentOpen();
+          if (result.ok) {
+            onOpenFile({
+              name: result.value.fileName,
+              path: result.value.path,
+              markdown: result.value.markdown,
+            });
+            void addRecent({ name: result.value.fileName, kind: 'file', path: result.value.path });
+          } else if (result.error.code !== 'CANCELLED') {
+            setError(result.error.message);
+          }
+        } else {
+          fileInputRef.current?.click();
+        }
+        return;
+      }
       const handles = await window.showOpenFilePicker!({
         multiple: true,
         types: [
@@ -321,26 +366,11 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
       for (const h of handles) {
         void addRecent({ name: h.name, kind: 'file', path: `files/${h.name}` }, h);
       }
-      setRoots((prev) => {
-        const existing = prev.find((r) => r.id === 'files');
-        const mergedNodes = existing
-          ? [
-              ...existing.nodes,
-              ...newFiles.filter((f) => !existing.nodes.some((n) => n.path === f.path)),
-            ].sort((a, b) => a.name.localeCompare(b.name))
-          : newFiles.sort((a, b) => a.name.localeCompare(b.name));
-        const filesRoot: WorkspaceRoot = {
-          id: 'files',
-          name: t('sidebar.filesGroup'),
-          kind: 'files',
-          nodes: mergedNodes,
-        };
-        return [filesRoot, ...prev.filter((r) => r.id !== 'files')];
-      });
+      addFiles(newFiles);
     } catch (err) {
       if ((err as DOMException)?.name !== 'AbortError') setError(String(err));
     }
-  }, []);
+  }, [addFiles, canPickFiles, onOpenFile]);
 
   /** Remove a root (folder or files group) from the sidebar. */
   const removeRoot = useCallback(
@@ -372,20 +402,11 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
   // startup (they only reopen on demand from the File menu's recent list), so a
   // launch — including via a file association — never re-reads the last folder.
 
-  /** Fallback open via the native Tauri dialog (no File System Access API). */
-  const openSingleFile = useCallback(async () => {
-    const res = await documentOpen();
-    if (res.ok) {
-      onOpenFile({ name: res.value.fileName, path: res.value.path, markdown: res.value.markdown });
-      void addRecent({ name: res.value.fileName, kind: 'file', path: res.value.path });
-    }
-  }, [onOpenFile]);
-
   const handleSelect = useCallback(
     async (node: FileNode) => {
-      if (node.kind !== 'file' || !node.handle) return;
+      if (node.kind !== 'file' || (!node.handle && !node.file)) return;
       try {
-        const file = await node.handle.getFile();
+        const file = node.file ?? (await node.handle!.getFile());
         const markdown = await file.text();
         onOpenFile({
           name: node.name,
@@ -394,12 +415,78 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
           handle: node.handle,
           dirHandle: node.dirHandle,
         });
-        void addRecent({ name: node.name, kind: 'file', path: node.path }, node.handle);
+        if (node.handle) {
+          void addRecent({ name: node.name, kind: 'file', path: node.path }, node.handle);
+        }
       } catch (err) {
         setError(String(err));
       }
     },
     [onOpenFile],
+  );
+
+  const openDropped = useCallback(
+    async (sources: DropSource[]) => {
+      setError(null);
+      setOpeningDrop(true);
+      try {
+        let opened = false;
+        const folderRoots: WorkspaceRoot[] = [];
+        const files: FileNode[] = [];
+        const handles = await Promise.all(sources.map((source) => source.handle));
+        for (const [index, source] of sources.entries()) {
+          const handle = handles[index];
+          if (handle?.kind === 'directory') {
+            await addFolderRoot(handle as FileSystemDirectoryHandle);
+            opened = true;
+          } else if (handle?.kind === 'file' && MD_EXT.test(handle.name)) {
+            files.push({
+              kind: 'file',
+              name: handle.name,
+              path: `files/${handle.name}`,
+              handle: handle as FileSystemFileHandle,
+            });
+          } else if (source.entry) {
+            const node = await readDroppedEntry(source.entry);
+            if (node?.kind === 'directory') {
+              folderRoots.push({
+                id: `folder:${node.name}`,
+                name: node.name,
+                kind: 'folder',
+                nodes: node.children ?? [],
+              });
+            } else if (node) {
+              files.push({ ...node, path: `files/${node.name}` });
+            }
+          } else if (source.file && MD_EXT.test(source.file.name)) {
+            files.push({
+              kind: 'file',
+              name: source.file.name,
+              path: `files/${source.file.name}`,
+              file: source.file,
+            });
+          }
+        }
+        if (folderRoots.length) {
+          setRoots((previous) => [
+            ...previous.filter((root) => !folderRoots.some((folder) => folder.id === root.id)),
+            ...folderRoots,
+          ]);
+          opened = true;
+        }
+        if (files.length) {
+          addFiles(files);
+          await handleSelect(files[0]);
+          opened = true;
+        }
+        if (!opened) setError(t('sidebar.noDroppedMarkdown'));
+      } catch (error) {
+        setError(String(error));
+      } finally {
+        setOpeningDrop(false);
+      }
+    },
+    [addFolderRoot, addFiles, handleSelect],
   );
 
   /** Reopen a recent item (folder or file) from the File menu. */
@@ -421,8 +508,16 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
           if (granted !== 'granted') return;
           const file = await fh.getFile();
           const markdown = await file.text();
-          onOpenFile({ name: fh.name, path: item.path ?? `files/${fh.name}`, markdown, handle: fh });
-          void addRecent({ name: fh.name, kind: 'file', path: item.path ?? `files/${fh.name}` }, fh);
+          onOpenFile({
+            name: fh.name,
+            path: item.path ?? `files/${fh.name}`,
+            markdown,
+            handle: fh,
+          });
+          void addRecent(
+            { name: fh.name, kind: 'file', path: item.path ?? `files/${fh.name}` },
+            fh,
+          );
         } catch (err) {
           setError(String(err));
         }
@@ -441,11 +536,11 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
     [onOpenFile, reopenFolderHandle],
   );
 
-  useImperativeHandle(
-    ref,
-    () => ({ openFolder, openFiles, openRecent }),
-    [openFolder, openFiles, openRecent],
-  );
+  useImperativeHandle(ref, () => ({ openFolder, openFiles, openRecent }), [
+    openFolder,
+    openFiles,
+    openRecent,
+  ]);
 
   /** Re-read every opened folder from disk to pick up added/removed files. */
   const refreshTree = useCallback(async () => {
@@ -480,7 +575,51 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
       className="markdit-sidebar"
       aria-label={t('sidebar.title')}
       style={{ width: `${sidebarWidth}px`, ...(collapsed ? { display: 'none' } : null) }}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes('Files')) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        setDropActive(true);
+      }}
+      onDragLeave={(event) => {
+        if (
+          !(event.relatedTarget instanceof Node) ||
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          setDropActive(false);
+        }
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDropActive(false);
+        if (!openingDrop) void openDropped(captureDrop(event.dataTransfer));
+      }}
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".md,.markdown,.mdown,.mkd"
+        multiple
+        hidden
+        aria-label={t('sidebar.openFiles')}
+        onChange={(event) => {
+          const files = Array.from(event.currentTarget.files ?? []);
+          event.currentTarget.value = '';
+          if (files.some((file) => !MD_EXT.test(file.name))) {
+            setError(t('sidebar.invalidFile'));
+            return;
+          }
+          const nodes: FileNode[] = files.map((file) => ({
+            name: file.name,
+            path: `files/${file.name}`,
+            kind: 'file',
+            file,
+          }));
+          setError(null);
+          addFiles(nodes);
+          if (nodes[0]) void handleSelect(nodes[0]);
+        }}
+      />
       <div className="markdit-sidebar-header">
         <strong>{t('sidebar.files')}</strong>
         <div className="markdit-sidebar-header-actions">
@@ -509,29 +648,22 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
               </svg>
             </button>
           )}
-          {canPickDirectory && (
-            <button type="button" onClick={openFolder} title={t('sidebar.openFolder')}>
-              {t('sidebar.openFolder')}
-            </button>
-          )}
-          {canPickFiles ? (
-            <button type="button" onClick={openFiles} title={t('sidebar.openFiles')}>
-              {t('sidebar.openFiles')}
-            </button>
-          ) : (
-            !canPickDirectory &&
-            isTauriAvailable() && (
-              <button type="button" onClick={openSingleFile} title={t('action.open')}>
-                {t('action.open')}
-              </button>
-            )
-          )}
+          <button type="button" onClick={openFiles} title={t('action.open')}>
+            {t('action.open')}
+          </button>
         </div>
       </div>
 
-      {hasContent ? (
-        <div className="markdit-sidebar-body">
-          <ul className="markdit-tree markdit-tree--roots" role="tree" aria-label={t('sidebar.files')}>
+      <div className="markdit-sidebar-body">
+        <p className={`markdit-drop-zone${dropActive ? ' is-active' : ''}`} role="status">
+          {openingDrop ? t('sidebar.openingDrop') : t('sidebar.dropHint')}
+        </p>
+        {hasContent ? (
+          <ul
+            className="markdit-tree markdit-tree--roots"
+            role="tree"
+            aria-label={t('sidebar.files')}
+          >
             {roots.map((root) => (
               <RootSection
                 key={root.id}
@@ -542,14 +674,18 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
               />
             ))}
           </ul>
-        </div>
-      ) : (
-        <div className="markdit-sidebar-body">
-          <p className="markdit-sidebar-empty">
-            {canPickDirectory || canPickFiles ? t('sidebar.empty') : t('sidebar.unsupported')}
-          </p>
-        </div>
-      )}
+        ) : (
+          <p className="markdit-sidebar-empty">{t('sidebar.empty')}</p>
+        )}
+        <a
+          className="markdit-sidebar-credit"
+          href="https://github.com/EtienneSIG/Markdit"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          design by Etienne SIGWALD
+        </a>
+      </div>
 
       {error && (
         <p className="markdit-sidebar-error" role="alert">
